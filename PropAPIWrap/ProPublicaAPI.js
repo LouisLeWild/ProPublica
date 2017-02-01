@@ -27,11 +27,13 @@ var my = {
 		return ["/congress/v1", session ? session : defaultSession, chamber, "bills", type + ".json"].join('/');
 	},
 
-	
+	billPath: function(billId, session){
+		return ["/congress/v1", session ? session : defaultSession, "bills", billId + ".json"].join('/');
+	},
 
 	getPropublicaData: function(path, internalEvent, externalEvent){
 		reqConfig = {
-			"hostname": "api.propublica.org",
+			"hostname": "api.propublica.org", 
 			"path": path,
 			"method": "GET",
 			"headers": { "X-API-Key" : apikey }
@@ -68,6 +70,11 @@ function newactivityListener(data, event){
 }
 me.on('newactivity', newactivityListener);
 
+function newfullbillListener(data, event){
+	me.emit(event, data, 'bills');
+}
+me.on('newfullbill', newfullbillListener);
+
 me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
 me.house_updated = function(session){ my.getPropublicaData(my.recentBillsPath("house", "updated", session),"newactivity","house_updated");}
 me.house_passed = function(session){ my.getPropublicaData(my.recentBillsPath("house", "passed", session),"newactivity","house_passed");}
@@ -77,6 +84,6 @@ me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("
 me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");}
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");}
 
+me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(billId, session), "newfullbill", "bills")}
+
 module.exports = me;
-
-

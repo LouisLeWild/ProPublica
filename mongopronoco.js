@@ -18,7 +18,7 @@ var ProPublica_Collections = {"BILLS": "bills"};
 		});
 	}
 
-	function insertIncomingBillsToSpecificTable(bills, collectionName){
+	function insertIncomingBillsToSpecificTable(bills, collectionName){	// incoming bills are the short 'digest' version of a bill document resulting from a call to one of the 'recent bill' endpoints
 		for(var r in bills.results){
 			for(var n in bills.results[r].bills){
 				var current = bills.results[0].bills[n];
@@ -29,6 +29,10 @@ var ProPublica_Collections = {"BILLS": "bills"};
 
 	function insertIncomingBillsToProcessingTable(bills){
 		insertIncomingBillsToSpecificTable(bills, 'incomingbills');
+	}
+
+	function insertBigBill(bill, collectionName){
+		insertBill(bill, collectionName);
 	}
 
 	function insertManyBills(bills, collectionName){	//doesn't work ???
@@ -66,17 +70,19 @@ ppApi.on('senate_updated', insertIncomingBillsToProcessingTable);
 ppApi.on('senate_passed', insertIncomingBillsToProcessingTable);
 ppApi.on('senate_major', insertIncomingBillsToProcessingTable);
 
-ppApi.on('bill', soundOff);
+ppApi.on('bills', soundOff);
 ppApi.on('madeRequest', function(){console.log('madeRequest fired');});
+ppApi.on('bills', insertBigBill)
 
-ppApi.house_introduced();
-ppApi.house_updated();
-ppApi.house_passed();
-ppApi.house_major();
-ppApi.senate_introduced();
-ppApi.senate_updated();
-ppApi.senate_passed();
-ppApi.senate_major();
+// ppApi.house_introduced();
+// ppApi.house_updated();
+// ppApi.house_passed();
+// ppApi.house_major();
+// ppApi.senate_introduced();
+// ppApi.senate_updated();
+// ppApi.senate_passed();
+// ppApi.senate_major();
+ppApi.getFullBill("hr726");
 
 
 
