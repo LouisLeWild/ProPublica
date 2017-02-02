@@ -1,10 +1,10 @@
-var fs = require('fs'),
-https = require('https'),
-apikey = fs.readFileSync('./public/apikey', 'utf8'),
+var fs = require("fs"),
+https = require("https"),
+apikey = fs.readFileSync("./public/apikey", "utf8"),
 defaultSession = 115;
 //console.log(defaultSession)
 
-const events = require('events');
+const events = require("events");
 class EventEmitter extends events {};
 
 var me = new EventEmitter();
@@ -24,11 +24,11 @@ var my = {
 		if(type != "introduced" && type != "updated" && type != "passed" && type != "major"){
 			throw "invalid arg set to recentBillsPath() type must be 'indroduced', 'updated', 'passed' or 'major', passed was " + type + ".";
 		}
-		return ["/congress/v1", session ? session : defaultSession, chamber, "bills", type + ".json"].join('/');
+		return ["/congress/v1", session ? session : defaultSession, chamber, "bills", type + ".json"].join("/");
 	},
 
 	billPath: function(billId, session){
-		return ["/congress/v1", session ? session : defaultSession, "bills", billId + ".json"].join('/');
+		return ["/congress/v1", session ? session : defaultSession, "bills", billId + ".json"].join("/");
 	},
 
 	memberPath: function(memberId){
@@ -46,14 +46,14 @@ var my = {
 		var req = https.request(reqConfig, function(res){
 			console.log("request rec\'d response", res.statusCode, res.statusMessage, externalEvent);
 
-		var respData = '';
+		var respData = "";
 		
-		res.on('data', (d) => {
+		res.on("data", (d) => {
 			var buf = Buffer.from(d);
-			respData += buf.toString('utf8');			
+			respData += buf.toString("utf8");			
 		  });
 
-		res.on('end', () => {
+		res.on("end", () => {
 			var responseObject = JSON.parse(respData);
 			my.emitter.emit(internalEvent, responseObject, externalEvent);
 			});
@@ -62,7 +62,7 @@ var my = {
 	},
 
 	getBill: function(path, session){
-		getPropublicaData(path, 'newactivity', 'incomingbills')
+		getPropublicaData(path, "newactivity", "incomingbills")
 	}
 
 };
@@ -72,12 +72,12 @@ my.setEmitter(me);
 function newactivityListener(data, event){
 	me.emit(event, data, event);
 }
-me.on('newactivity', newactivityListener);
+me.on("newactivity", newactivityListener);
 
 function newfullbillListener(data, event){
-	me.emit(event, data, 'bills');
+	me.emit(event, data, "bills");
 }
-me.on('newfullbill', newfullbillListener);
+me.on("newfullbill", newfullbillListener);
 
 function newmemberListener(data, event){
 	me.emit(event, data, "members");

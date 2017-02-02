@@ -1,6 +1,6 @@
-var MongoClient = require('mongodb').MongoClient;
-var ppApi = require('./PropAPIWrap/ProPublicaAPI.js');
-var fs = require('fs');
+var MongoClient = require("mongodb").MongoClient;
+var ppApi = require("./PropAPIWrap/ProPublicaAPI.js");
+var fs = require("fs");
 
 
 
@@ -53,7 +53,8 @@ var ProPublica_Collections = {"BILLS": "bills"};
 	}
 
 	function insertIncomingBillsToProcessingTable(bills){
-		insertIncomingBillsToSpecificTable(bills, 'incomingbills');
+		insertIncomingBillsToSpecificTable(bills, "incomingbills");
+
 	}
 
 	function insertWholeBill(bill, collectionName){
@@ -96,51 +97,38 @@ var ProPublica_Collections = {"BILLS": "bills"};
 		console.log("SOUND OFF -", message);
 	}
 
-ppApi.on('madeRequest', function(){console.log('madeRequest fired');});
-ppApi.on('house_introduced', insertIncomingBillsToSpecificTable);
-ppApi.on('house_updated', insertIncomingBillsToSpecificTable);
-ppApi.on('house_passed', insertIncomingBillsToSpecificTable);
-ppApi.on('house_major', insertIncomingBillsToSpecificTable);
-ppApi.on('senate_introduced', insertIncomingBillsToSpecificTable);
-ppApi.on('senate_updated', insertIncomingBillsToSpecificTable);
-ppApi.on('senate_passed', insertIncomingBillsToSpecificTable);
-ppApi.on('senate_major', insertIncomingBillsToSpecificTable);
+ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
+ppApi.on("house_introduced", insertIncomingBillsToSpecificTable);
+ppApi.on("house_updated", insertIncomingBillsToSpecificTable);
+ppApi.on("house_passed", insertIncomingBillsToSpecificTable);
+ppApi.on("house_major", insertIncomingBillsToSpecificTable);
+ppApi.on("senate_introduced", insertIncomingBillsToSpecificTable);
+ppApi.on("senate_updated", insertIncomingBillsToSpecificTable);
+ppApi.on("senate_passed", insertIncomingBillsToSpecificTable);
+ppApi.on("senate_major", insertIncomingBillsToSpecificTable);
 
-ppApi.on('house_introduced', insertIncomingBillsToProcessingTable);
-ppApi.on('house_updated', insertIncomingBillsToProcessingTable);
-ppApi.on('house_passed', insertIncomingBillsToProcessingTable);
-ppApi.on('house_major', insertIncomingBillsToProcessingTable);
-ppApi.on('senate_introduced', insertIncomingBillsToProcessingTable);
-ppApi.on('senate_updated', insertIncomingBillsToProcessingTable);
-ppApi.on('senate_passed', insertIncomingBillsToProcessingTable);
-ppApi.on('senate_major', insertIncomingBillsToProcessingTable);
+ppApi.on("house_introduced", insertIncomingBillsToProcessingTable);
+ppApi.on("house_updated", insertIncomingBillsToProcessingTable);
+ppApi.on("house_passed", insertIncomingBillsToProcessingTable);
+ppApi.on("house_major", insertIncomingBillsToProcessingTable);
+ppApi.on("senate_introduced", insertIncomingBillsToProcessingTable);
+ppApi.on("senate_updated", insertIncomingBillsToProcessingTable);
+ppApi.on("senate_passed", insertIncomingBillsToProcessingTable);
+ppApi.on("senate_major", insertIncomingBillsToProcessingTable);
 
-ppApi.on('bills', insertWholeBill);
+ppApi.on("bills", insertWholeBill);
 ppApi.on("members", insertMember);
 
-ppApi.house_introduced();
-ppApi.house_updated();
-ppApi.house_passed();
-ppApi.house_major();
-ppApi.senate_introduced();
-ppApi.senate_updated();
-ppApi.senate_passed();
-ppApi.senate_major();
-ppApi.getFullBill("hr726");
-ppApi.getMember("K000388");
 
-
-
-	// conn_roast.then(function(db){
-	// 	var col = db.collection('tuesday');
-	// 	var docs = col.find({"day": "tuesday", "hours": {$gte:6}}, {_id:0}).toArray(function(err, docs){
-	// 		console.log(docs);
-	// 		db.close();
-	// 	});
-	// });
-
-	
-	
-	
-	
+// // test calls
+// ppApi.house_introduced();
+// ppApi.house_updated();
+// ppApi.house_passed();
+// ppApi.house_major();
+// ppApi.senate_introduced();
+// ppApi.senate_updated();
+// ppApi.senate_passed();
+// ppApi.senate_major();
+// ppApi.getFullBill("hr726");
+// ppApi.getMember("K000388");
 
