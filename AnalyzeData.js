@@ -11,7 +11,8 @@ var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
 						//"HOUSE_MAJOR":"house_major",
 						"SENATE_INTRODUCED":"senate_introduced",
 						"SENATE_UPDATED":"senate_updated",
-						"SENATE_PASSED":"senate_passed"
+						"SENATE_PASSED":"senate_passed",
+						"BILLS": "bills"
 						//,"SENATE_MAJOR":"senate_major"
 					};
 
@@ -46,30 +47,48 @@ function combineGxFxFx(f1,f2){
 }
 var areObjectsSameType = combineGxFxFx(getType, areTypesSame);
 var counter = 0;
-co(function*(){
-	var db = yield MongoClient.connect(DB_Connections.ProPublica);
-	var col = db.collection(collectionNames.HOUSE_UPDATED);
-	var docs = yield col.find().limit(1).toArray();
-	var masterType = getType(docs[0]);
-	console.log(masterType);
-
-	for(var c in collectionNames){
-		var current = collectionNames[c];
-		console.log(current);
-		col = db.collection(current);
-		var docs = yield col.find().toArray();
-		for(var doc in docs){
-			counter++;
-			var currentDoc = docs[doc];
-			var docType = getType(currentDoc);
-			if(!areTypesSame(docType, masterType)){
-				console.log("found erant type in", current);
-			}
-		}
+var count = 0;
+	function billUnknown(billNumber){
+		
+		return co( function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.BILLS);
+			var docs = yield col.find({"bill": billNumber}).toArray();
+			db.close();
+			return {"unknonwn": docs.length === 0, "billNumber": billNumber } ;
+		});
 	}
-	db.close(); 	
-	console.log(counter);
-});
+
+	var buProm = billUnknown("H.R.727");
+	buProm.then(function(d){console.log("promise resolved", d)})
+			.catch(function(d){console.log("promise rejected", d);});
+
+
+// //compares all objects to prototype and logs when it finds a mismatch
+// co(function*(){
+// 	var db = yield MongoClient.connect(DB_Connections.ProPublica);
+// 	var col = db.collection(collectionNames.HOUSE_UPDATED);
+// 	var docs = yield col.find().limit(1).toArray();
+// 	var masterType = getType(docs[0]);
+// 	console.log(masterType);
+
+// 	for(var c in collectionNames){
+// 		var current = collectionNames[c];
+// 		console.log(current);
+// 		col = db.collection(current);
+// 		var docs = yield col.find().toArray();
+// 		for(var doc in docs){
+// 			counter++;
+// 			var currentDoc = docs[doc];
+// 			var docType = getType(currentDoc);
+// 			if(!areTypesSame(docType, masterType)){
+// 				console.log("found erant type in", current);
+// 			}
+// 		}
+// 	}
+// 	db.close(); 	
+// 	console.log(counter);
+// });
 
 // var conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
 // 	if(!err){

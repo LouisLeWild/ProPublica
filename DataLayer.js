@@ -1,11 +1,22 @@
 var MongoClient = require("mongodb").MongoClient;
 var ppApi = require("./PropAPIWrap/ProPublicaAPI.js");
 var fs = require("fs");
+var co = require("co");
 
 
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
-var ProPublica_Collections = {"BILLS": "bills"};
+var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
+						"HOUSE_UPDATED":"house_updated",
+						"HOUSE_PASSED":"house_passed",
+						//"HOUSE_MAJOR":"house_major",
+						"SENATE_INTRODUCED":"senate_introduced",
+						"SENATE_UPDATED":"senate_updated",
+						"SENATE_PASSED":"senate_passed",
+						//,"SENATE_MAJOR":"senate_major"
+						"BILLS": "bills",
+						"INCOMING_BILLS": "incomingbills"};
+
 
 	var diskLog = function(count, blocked){
 		return function(message){
@@ -93,6 +104,32 @@ var ProPublica_Collections = {"BILLS": "bills"};
 		});		
 	}
 
+	function ransackIncomingForNewBills(){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
+			var docs = yield col.find().toArray();
+			for(var d in docs){
+				var current = docs[d];
+				billUnknown(current.number);
+			}
+			db.close();
+		});
+	}
+
+	function billUnknown(billNumber){
+		co( function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(ProPublica_Collections.BILLS);
+			var docs = yield col.find({"bill": billNumber}).toArray();
+			db.close();
+			if(!docs.length){
+				ppApi.getFullBill(billNumber);
+			}
+			db.close();
+		});
+	}
+
 	function soundOff(object, message){
 		console.log("SOUND OFF -", message);
 	}
@@ -116,9 +153,11 @@ ppApi.on("senate_updated", insertIncomingBillsToProcessingTable);
 ppApi.on("senate_passed", insertIncomingBillsToProcessingTable);
 ppApi.on("senate_major", insertIncomingBillsToProcessingTable);
 
-ppApi.on("bills", insertWholeBill);
+ppApi.on("bill", insertWholeBill);
+ppApi.on("bill", soundOff);
 ppApi.on("members", insertMember);
 
+ransackIncomingForNewBills();
 
 // // test calls
 // ppApi.house_introduced();

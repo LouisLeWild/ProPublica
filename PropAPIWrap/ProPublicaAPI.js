@@ -63,6 +63,14 @@ var my = {
 
 	getBill: function(path, session){
 		getPropublicaData(path, "newactivity", "incomingbills")
+	},
+
+	slug: function(s){
+		var out = [];
+		for(var l in s){
+			if(s[l] != "."){ out.push(s[l]); }
+		}
+		return out.join("");
 	}
 
 };
@@ -75,7 +83,7 @@ function newactivityListener(data, event){
 me.on("newactivity", newactivityListener);
 
 function newfullbillListener(data, event){
-	me.emit(event, data, "bills");
+	me.emit(event, data, "bills");	
 }
 me.on("newfullbill", newfullbillListener);
 
@@ -95,7 +103,10 @@ me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("
 me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");}
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");}
 
-me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(billId, session), "newfullbill", "bills");}
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "members");}
+
+me.getFullBill = function(billId, session){ 
+		my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");
+	}
 
 module.exports = me;
