@@ -12,7 +12,8 @@ var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
 						"SENATE_INTRODUCED":"senate_introduced",
 						"SENATE_UPDATED":"senate_updated",
 						"SENATE_PASSED":"senate_passed",
-						"BILLS": "bills"
+						"BILLS": "bills",
+						"MEMBERS": "members"
 						//,"SENATE_MAJOR":"senate_major"
 					};
 
@@ -48,20 +49,77 @@ function combineGxFxFx(f1,f2){
 var areObjectsSameType = combineGxFxFx(getType, areTypesSame);
 var counter = 0;
 var count = 0;
-	function billUnknown(billNumber){
-		
-		return co( function*(){
+
+	function reCreateDb(){
+		co(function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
-			var col = db.collection(collectionNames.BILLS);
-			var docs = yield col.find({"bill": billNumber}).toArray();
+			db.dropDatabase();
+			
+			var x = yield db.collection("bills").ensureIndex({"bill": 1}, {"unique": true, "dropDups": true});
+			var x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
+			console.log(x);
 			db.close();
-			return {"unknonwn": docs.length === 0, "billNumber": billNumber } ;
 		});
 	}
 
-	var buProm = billUnknown("H.R.727");
-	buProm.then(function(d){console.log("promise resolved", d)})
-			.catch(function(d){console.log("promise rejected", d);});
+	function scanMembersForDupes(collectionName, strategy){
+		console.log('scanning for dupes...');
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.MEMBERS);
+			var docs = yield col.find().toArray();
+			console.log("docs.length", docs.length);
+			for(var d in docs){
+				
+				var current = docs[d];
+				var memcount = yield col.find({"member_id": current.member_id}).count();
+				if(memcount > 1){
+					console.log("\n<<<<<<<<<<<<<<<");
+					console.log("found duplicate", current.member_id, memcount);
+					console.log(">>>>>>>>>>>>>>>");
+				}
+			}
+			db.close();
+			console.log('done.');
+		});
+	}
+
+	function scanBillsForDupes(collectionName, strategy){
+		console.log('scanning for dupes...');
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.BILLS);
+			var docs = yield col.find().toArray();
+			console.log("docs.length", docs.length);
+			for(var d in docs){
+				
+				var current = docs[d];
+				var memcount = yield col.find({"bill": current.bill}).count();
+				if(memcount > 1){
+					console.log("\n<<<<<<<<<<<<<<<");
+					console.log("found duplicate", current.bill, memcount);
+					console.log(">>>>>>>>>>>>>>>");
+				}
+			}
+			db.close();
+			console.log('done.');
+		});
+	}
+
+	function aggregate(){
+		console.log('aggergating...');
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.MEMBERS);
+			var count = yield col.find({"member_id": "L000577"}).count();	//M000355:9, I00024:2, L000577:2, E000295:4
+			db.close();
+			console.log(count);
+		});
+	}
+
+scanMembersForDupes();
+scanBillsForDupes();
+//aggregate();
 
 
 // //compares all objects to prototype and logs when it finds a mismatch

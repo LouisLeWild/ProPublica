@@ -7,26 +7,28 @@ var co = require("co");
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
 var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
-						"HOUSE_UPDATED":"house_updated",
-						"HOUSE_PASSED":"house_passed",
-						//"HOUSE_MAJOR":"house_major",
-						"SENATE_INTRODUCED":"senate_introduced",
-						"SENATE_UPDATED":"senate_updated",
-						"SENATE_PASSED":"senate_passed",
-						//,"SENATE_MAJOR":"senate_major"
-						"BILLS": "bills",
-						"INCOMING_BILLS": "incomingbills"};
+							"HOUSE_UPDATED":"house_updated",
+							"HOUSE_PASSED":"house_passed",
+							"HOUSE_MAJOR":"house_major",
+							"SENATE_INTRODUCED":"senate_introduced",
+							"SENATE_UPDATED":"senate_updated",
+							"SENATE_PASSED":"senate_passed",
+							"SENATE_MAJOR":"senate_major",
+							"BILLS": "bills",
+							"INCOMING_BILLS": "incomingbills",
+							"MEMBERS": "members"
+					};
 
 
 	var diskLog = function(count, blocked){
 		return function(message){
 			if(!blocked){
 				if(++count < 1000){
-					fs.fs.appendFileSync("./errorlog.txt", new Date().toString() + " " + message, "utf8");
+					fs.appendFileSync("./errorlog.txt", new Date().toString() + " " + message + "\n", "utf8");
 				}
 				else {
-					fs.fs.appendFileSync("./errorlog.txt", new Date().toString() + " " + message, "utf8");
-					fs.fs.appendFileSync("./errorlog.txt", new Date().toString() + " messages halted due to excessive log activity...", "utf8");	
+					fs.appendFileSync("./errorlog.txt", new Date().toString() + " " + message + "\n", "utf8");
+					fs.appendFileSync("./errorlog.txt", new Date().toString() + " messages halted due to excessive log activity...\n", "utf8");	
 					blocked = true;
 					ppApi.halt();
 				}
@@ -134,6 +136,34 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		console.log("SOUND OFF -", message);
 	}
 
+	function ransackIncomingForNewMembers(){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
+			var docs = yield col.find().toArray();
+			db.close();
+			for(var d in docs){
+				var current = docs[d];
+				var parts = current.sponsor_uri.split("/");
+				var slug = parts[parts.length-1].split(".")[0];
+				memberUnknown(slug);
+			}
+		});
+	}
+
+	function memberUnknown(memberId){
+		console.log(memberId);
+		co( function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(ProPublica_Collections.MEMBERS);
+			var count = yield col.find({"member_id": memberId}).count();
+			if(count === 0){
+				ppApi.getMember(memberId);
+			}
+			db.close();
+		});		
+	}
+
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
 ppApi.on("house_introduced", insertIncomingBillsToSpecificTable);
 ppApi.on("house_updated", insertIncomingBillsToSpecificTable);
@@ -158,6 +188,7 @@ ppApi.on("bill", soundOff);
 ppApi.on("members", insertMember);
 
 ransackIncomingForNewBills();
+ransackIncomingForNewMembers();
 
 // // test calls
 // ppApi.house_introduced();
@@ -168,6 +199,7 @@ ransackIncomingForNewBills();
 // ppApi.senate_updated();
 // ppApi.senate_passed();
 // ppApi.senate_major();
+
 // ppApi.getFullBill("hr726");
 // ppApi.getMember("K000388");
 

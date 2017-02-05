@@ -105,8 +105,6 @@ me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("se
 
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "members");}
 
-me.getFullBill = function(billId, session){ 
-		my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");
-	}
+me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");}
 
 module.exports = me;
