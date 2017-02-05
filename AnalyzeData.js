@@ -57,7 +57,7 @@ var count = 0;
 			
 			var x = yield db.collection("bills").ensureIndex({"bill": 1}, {"unique": true, "dropDups": true});
 			var x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
-			console.log(x);
+			
 			db.close();
 		});
 	}
@@ -117,6 +117,7 @@ var count = 0;
 		});
 	}
 
+////////////reCreateDb();
 scanMembersForDupes();
 scanBillsForDupes();
 //aggregate();

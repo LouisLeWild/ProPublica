@@ -36,6 +36,10 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		}
 	}(0, false);
 
+	var infoLog = function(message){
+		fs.appendFileSync("./infolog.txt", message + "\n", "utf8");
+	}
+
 	function insertBill(bill, collectionName){
 		var dbAddress = DB_Connections.ProPublica,
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
@@ -57,9 +61,10 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 	function insertIncomingBillsToSpecificTable(bills, collectionName){	// incoming bills are the short 'digest' version of a bill document resulting from a call to one of the 'recent bill' endpoints
+
 		for(var r in bills.results){
 			for(var n in bills.results[r].bills){
-				var current = bills.results[0].bills[n];
+				var current = bills.results[r].bills[n];
 				insertBill(current, collectionName);
 			}
 		}
