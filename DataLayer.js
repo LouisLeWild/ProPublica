@@ -40,6 +40,16 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		fs.appendFileSync("./infolog.txt", message + "\n", "utf8");
 	}
 
+  function getType(a){
+  	/*	pass an object, returned is an array of top level properties
+  	*/
+  	var p=[];
+    for(var c in a){
+    	p.push(c);
+    }
+    return p;
+  }
+
 	function insertBill(bill, collectionName){
 		var dbAddress = DB_Connections.ProPublica,
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
@@ -60,19 +70,8 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		});
 	}
 
-	function insertIncomingBillsToSpecificTable(bills, collectionName){	// incoming bills are the short 'digest' version of a bill document resulting from a call to one of the 'recent bill' endpoints
-
-		for(var r in bills.results){
-			for(var n in bills.results[r].bills){
-				var current = bills.results[r].bills[n];
-				insertBill(current, collectionName);
-			}
-		}
-	}
-
-	function insertIncomingBillsToProcessingTable(bills){
-		insertIncomingBillsToSpecificTable(bills, "incomingbills");
-
+	function insertIncomingBillToProcessingTable(bill){
+		insertBill(bill, "incomingbills");
 	}
 
 	function insertWholeBill(bill, collectionName){
@@ -157,7 +156,6 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 	function memberUnknown(memberId){
-		console.log(memberId);
 		co( function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.MEMBERS);
@@ -170,33 +168,33 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
-ppApi.on("house_introduced", insertIncomingBillsToSpecificTable);
-ppApi.on("house_updated", insertIncomingBillsToSpecificTable);
-ppApi.on("house_passed", insertIncomingBillsToSpecificTable);
-ppApi.on("house_major", insertIncomingBillsToSpecificTable);
-ppApi.on("senate_introduced", insertIncomingBillsToSpecificTable);
-ppApi.on("senate_updated", insertIncomingBillsToSpecificTable);
-ppApi.on("senate_passed", insertIncomingBillsToSpecificTable);
-ppApi.on("senate_major", insertIncomingBillsToSpecificTable);
+ppApi.on("house_introduced", insertBill);
+ppApi.on("house_updated", insertBill);
+ppApi.on("house_passed", insertBill);
+ppApi.on("house_major", insertBill);
+ppApi.on("senate_introduced", insertBill);
+ppApi.on("senate_updated", insertBill);
+ppApi.on("senate_passed", insertBill);
+ppApi.on("senate_major", insertBill);
 
-ppApi.on("house_introduced", insertIncomingBillsToProcessingTable);
-ppApi.on("house_updated", insertIncomingBillsToProcessingTable);
-ppApi.on("house_passed", insertIncomingBillsToProcessingTable);
-ppApi.on("house_major", insertIncomingBillsToProcessingTable);
-ppApi.on("senate_introduced", insertIncomingBillsToProcessingTable);
-ppApi.on("senate_updated", insertIncomingBillsToProcessingTable);
-ppApi.on("senate_passed", insertIncomingBillsToProcessingTable);
-ppApi.on("senate_major", insertIncomingBillsToProcessingTable);
+ppApi.on("house_introduced", insertIncomingBillToProcessingTable);
+ppApi.on("house_updated", insertIncomingBillToProcessingTable);
+ppApi.on("house_passed", insertIncomingBillToProcessingTable);
+ppApi.on("house_major", insertIncomingBillToProcessingTable);
+ppApi.on("senate_introduced", insertIncomingBillToProcessingTable);
+ppApi.on("senate_updated", insertIncomingBillToProcessingTable);
+ppApi.on("senate_passed", insertIncomingBillToProcessingTable);
+ppApi.on("senate_major", insertIncomingBillToProcessingTable);
 
 ppApi.on("bill", insertWholeBill);
 ppApi.on("bill", soundOff);
 ppApi.on("members", insertMember);
 
-ransackIncomingForNewBills();
-ransackIncomingForNewMembers();
+//ransackIncomingForNewBills();
+//ransackIncomingForNewMembers();
 
 // // test calls
-// ppApi.house_introduced();
+ ppApi.house_introduced();
 // ppApi.house_updated();
 // ppApi.house_passed();
 // ppApi.house_major();
@@ -205,6 +203,6 @@ ransackIncomingForNewMembers();
 // ppApi.senate_passed();
 // ppApi.senate_major();
 
-// ppApi.getFullBill("hr726");
+//ppApi.getFullBill("hr726");
 // ppApi.getMember("K000388");
 

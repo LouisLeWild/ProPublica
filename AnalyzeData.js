@@ -11,9 +11,9 @@ var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
 						//"HOUSE_MAJOR":"house_major",
 						"SENATE_INTRODUCED":"senate_introduced",
 						"SENATE_UPDATED":"senate_updated",
-						"SENATE_PASSED":"senate_passed",
-						"BILLS": "bills",
-						"MEMBERS": "members"
+						"SENATE_PASSED":"senate_passed"
+						//"BILLS": "bills",
+						//"MEMBERS": "members"
 						//,"SENATE_MAJOR":"senate_major"
 					};
 
@@ -117,22 +117,22 @@ var count = 0;
 		});
 	}
 
-////////////reCreateDb();
-scanMembersForDupes();
-scanBillsForDupes();
+reCreateDb();
+//scanMembersForDupes();
+//scanBillsForDupes();
 //aggregate();
 
 
 // //compares all objects to prototype and logs when it finds a mismatch
 // co(function*(){
 // 	var db = yield MongoClient.connect(DB_Connections.ProPublica);
-// 	var col = db.collection(collectionNames.HOUSE_UPDATED);
+// 	var col = db.collection(collectionNames.HOUSE_INTRODUCED);
 // 	var docs = yield col.find().limit(1).toArray();
 // 	var masterType = getType(docs[0]);
 // 	console.log(masterType);
 
 // 	for(var c in collectionNames){
-// 		var current = collectionNames[c];
+// 		var current = collectionNames.HOUSE_INTRODUCED;//collectionNames[c];
 // 		console.log(current);
 // 		col = db.collection(current);
 // 		var docs = yield col.find().toArray();
@@ -140,6 +140,7 @@ scanBillsForDupes();
 // 			counter++;
 // 			var currentDoc = docs[doc];
 // 			var docType = getType(currentDoc);
+// console.log(docType);			
 // 			if(!areTypesSame(docType, masterType)){
 // 				console.log("found erant type in", current);
 // 			}

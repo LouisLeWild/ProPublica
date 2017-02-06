@@ -9,6 +9,16 @@ class EventEmitter extends events {};
 
 var me = new EventEmitter();
 
+  function getType(a){
+  	/*	pass an object, returned is an array of top level properties
+  	*/
+  	var p=[];
+    for(var c in a){
+    	p.push(c);
+    }
+    return p;
+  }
+
 var my = {
 
 	emitter: null,
@@ -78,7 +88,12 @@ var my = {
 my.setEmitter(me);
 
 function newactivityListener(data, event){
-	me.emit(event, data, event);
+	for(var r in data.results){
+		for(var n in data.results[r].bills){
+			var current = data.results[r].bills[n];
+			me.emit(event, current, event); //insertBill(current, collectionName);
+		}
+	}	
 }
 me.on("newactivity", newactivityListener);
 
