@@ -1,5 +1,6 @@
 var MongoClient = require('mongodb').MongoClient;
 var co = require('co');
+var fs = require('fs');
 
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
@@ -8,13 +9,14 @@ var ProPublica_Collections = {"BILLS": "bills"};
 var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
 						"HOUSE_UPDATED":"house_updated",
 						"HOUSE_PASSED":"house_passed",
-						//"HOUSE_MAJOR":"house_major",
+						"HOUSE_MAJOR":"house_major",
 						"SENATE_INTRODUCED":"senate_introduced",
 						"SENATE_UPDATED":"senate_updated",
-						"SENATE_PASSED":"senate_passed"
-						//"BILLS": "bills",
-						//"MEMBERS": "members"
-						//,"SENATE_MAJOR":"senate_major"
+						"SENATE_PASSED":"senate_passed",
+						"BILLS": "bills",
+						"MEMBERS": "members",
+						"SENATE_MAJOR":"senate_major",
+						"INCOMING_BILLS": "incomingbills"
 					};
 
   function getType(a){
@@ -117,11 +119,26 @@ var count = 0;
 		});
 	}
 
-reCreateDb();
+	function queryToFile(fileName){
+		console.log("querying...");
+		var filePath = "/PropAPIWrap/work/" + fileName;
+		co( function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.MEMBERS);
+			var result = yield col.find({"member_id": "P000609"}).toArray();
+			
+			db.close();
+			fs.writeFileSync(filePath, JSON.stringify(result, null, 2), "utf8");
+		});
+	}
+
+
+//////////reCreateDb();
 //scanMembersForDupes();
 //scanBillsForDupes();
 //aggregate();
 
+queryToFile("./member.json");
 
 // //compares all objects to prototype and logs when it finds a mismatch
 // co(function*(){

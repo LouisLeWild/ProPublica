@@ -75,14 +75,14 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 	function insertWholeBill(bill, collectionName){
-		insertBill(bill.results[0], collectionName);
+		insertBill(bill, collectionName);
 	}
 
-	function insertMember(memberResponse, collectionName){
+	function insertMember(member, collectionName){
 		var dbAddress = DB_Connections.ProPublica,
 		con = MongoClient.connect(dbAddress, function(err, db){
 			if(!err){
-				db.collection(collectionName).insertOne(memberResponse.results[0], function(err, r){
+				db.collection(collectionName).insertOne(member, function(err, r){
 					if(!err){
 						db.close();
 					}
@@ -187,14 +187,14 @@ ppApi.on("senate_passed", insertIncomingBillToProcessingTable);
 ppApi.on("senate_major", insertIncomingBillToProcessingTable);
 
 ppApi.on("bill", insertWholeBill);
-ppApi.on("bill", soundOff);
-ppApi.on("members", insertMember);
+//ppApi.on("bill", soundOff);
+ppApi.on("member", insertMember);
 
-//ransackIncomingForNewBills();
-//ransackIncomingForNewMembers();
+ransackIncomingForNewBills();
+ransackIncomingForNewMembers();
 
 // // test calls
- ppApi.house_introduced();
+// ppApi.house_introduced();
 // ppApi.house_updated();
 // ppApi.house_passed();
 // ppApi.house_major();
