@@ -45,6 +45,11 @@ var my = {
 		return ["/congress/v1", "members", memberId + ".json"].join('/');
 	},
 
+	cosponsorsPath: function(billId, session){
+		///congress/v1/{congress}/bills/{bill-id}/cosponsors.json
+		return ["/congress/v1", session ? session : defaultSession, "bills", billId, "cosponsors.json"].join("/");
+	},
+
 	getPropublicaData: function(path, internalEvent, externalEvent){
 		reqConfig = {
 			"hostname": "api.propublica.org", 
@@ -107,6 +112,11 @@ function newmemberListener(data, event){
 }
 me.on("newmember", newmemberListener);
 
+function newcosponsorsListener(data, event){
+	me.emit(event, data.results[0], "billCosponsors");
+}
+me.on("newcosponsors", newcosponsorsListener);
+
 me.halt = function(){ me.removeAllListeners();}
 
 me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
@@ -121,5 +131,7 @@ me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("se
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");}
 
 me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");}
+
+me.getBillCosponsors = function(billId, session){ console.log(my.cosponsorsPath(my.slug(billId), session)); my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
 
 module.exports = me;

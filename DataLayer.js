@@ -16,7 +16,8 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 							"SENATE_MAJOR":"senate_major",
 							"BILLS": "bills",
 							"INCOMING_BILLS": "incomingbills",
-							"MEMBERS": "members"
+							"MEMBERS": "members",
+							"BILL_COSPONSORS": "billcosponsors"
 					};
 
 
@@ -59,7 +60,7 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 						db.close();
 					}
 					else {	//trouble inserting bill
-						diskLog("trouble inserting bill into " + collectionName);
+						diskLog("can't insert bill into " + collectionName);
 						db.close();
 					}
 				});
@@ -94,6 +95,26 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 			}
 			else {	//trouble connecting
 				diskLog("cant connect to " + dbAddress + ". Trying to insert member.");
+			}
+		});
+	}
+
+	function insertCosponsors(billCosponsors, collectionName){
+		var dbAddress = DB_Connections.ProPublica,
+		con = MongoClient.connect(dbAddress, function(err, db){
+			if(!err){
+				db.collection(collectionName).insertOne(billCosponsors, function(err, r){
+					if(!err){
+						db.close();
+					}
+					else {
+						diskLog("can't insert billCosponsors");
+						db.close();
+					}
+				});
+			}
+			else{	//trouble connecting
+				diskLog("can't connect to " + dbAddress + ". Trying to insert cosponsors;");
 			}
 		});
 	}
@@ -155,6 +176,30 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		});
 	}
 
+	function ransackIncomingBillsForCosponsors(){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
+			var docs = yield col.find().toArray();
+			db.close();
+			for(var d in docs){
+				cosponsorsUnknown(docs[d].number);
+			}
+		});
+	}
+
+	function cosponsorsUnknown(billId){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var col = db.collection(ProPublica_Collections.BILL_COSPONSORS);
+			var count = yield col.find({"bill": billId}).count();
+			db.close();
+			if(count === 0){
+				ppApi.getBillCosponsors(billId);
+			}
+		});
+	}
+
 	function memberUnknown(memberId){
 		co( function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
@@ -189,9 +234,11 @@ ppApi.on("senate_major", insertIncomingBillToProcessingTable);
 ppApi.on("bill", insertWholeBill);
 //ppApi.on("bill", soundOff);
 ppApi.on("member", insertMember);
+ppApi.on("cosponsors", insertCosponsors);
 
-ransackIncomingForNewBills();
-ransackIncomingForNewMembers();
+// ransackIncomingForNewBills();
+// ransackIncomingForNewMembers();
+ransackIncomingBillsForCosponsors();
 
 // // test calls
 // ppApi.house_introduced();
@@ -206,3 +253,4 @@ ransackIncomingForNewMembers();
 //ppApi.getFullBill("hr726");
 // ppApi.getMember("K000388");
 
+//ppApi.getBillCosponsors("1.2.3.45");
