@@ -9,16 +9,6 @@ class EventEmitter extends events {};
 
 var me = new EventEmitter();
 
-  function getType(a){
-  	/*	pass an object, returned is an array of top level properties
-  	*/
-  	var p=[];
-    for(var c in a){
-    	p.push(c);
-    }
-    return p;
-  }
-
 var my = {
 
 	emitter: null,
@@ -100,25 +90,22 @@ function newactivityListener(data, event){
 		}
 	}	
 }
-me.on("newactivity", newactivityListener);
-
 function newfullbillListener(data, event){
 	me.emit(event, data.results[0], "bills");	
 }
-me.on("newfullbill", newfullbillListener);
-
 function newmemberListener(data, event){
 	me.emit(event, data.results[0], "members");
 }
-me.on("newmember", newmemberListener);
-
 function newcosponsorsListener(data, event){
 	me.emit(event, data.results[0], "billCosponsors");
 }
+
+me.on("newactivity", newactivityListener);
+me.on("newfullbill", newfullbillListener);
+me.on("newmember", newmemberListener);
 me.on("newcosponsors", newcosponsorsListener);
 
 me.halt = function(){ me.removeAllListeners();}
-
 me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
 me.house_updated = function(session){ my.getPropublicaData(my.recentBillsPath("house", "updated", session),"newactivity","house_updated");}
 me.house_passed = function(session){ my.getPropublicaData(my.recentBillsPath("house", "passed", session),"newactivity","house_passed");}
@@ -127,11 +114,8 @@ me.senate_introduced = function(session){ my.getPropublicaData(my.recentBillsPat
 me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "updated", session),"newactivity","senate_updated");}
 me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");}
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");}
-
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");}
-
 me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");}
-
-me.getBillCosponsors = function(billId, session){ console.log(my.cosponsorsPath(my.slug(billId), session)); my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
+me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
 
 module.exports = me;

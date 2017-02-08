@@ -41,16 +41,6 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		fs.appendFileSync("./infolog.txt", message + "\n", "utf8");
 	}
 
-  function getType(a){
-  	/*	pass an object, returned is an array of top level properties
-  	*/
-  	var p=[];
-    for(var c in a){
-    	p.push(c);
-    }
-    return p;
-  }
-
 	function insertBill(bill, collectionName){
 		var dbAddress = DB_Connections.ProPublica,
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){

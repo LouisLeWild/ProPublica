@@ -1,7 +1,7 @@
 var MongoClient = require('mongodb').MongoClient;
 var co = require('co');
 var fs = require('fs');
-
+var util = require('util');
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
 var ProPublica_Collections = {"BILLS": "bills"};
@@ -19,36 +19,7 @@ var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
 						"INCOMING_BILLS": "incomingbills"
 					};
 
-  function getType(a){
-  	/*	pass an object, returned is an array of top level properties
-  	*/
-  	var p=[];
-    for(var c in a){
-    	p.push(c);
-    }
-    return p;
-  }
-  function areTypesSame(a,b){
-    /*	pass two arrays representing top level properties of objects
-    	returns boolean
-    */  
-	if(a.length != b.length){ return false;}
-    var d=true;a.sort();b.sort();
-    for(var c in a){
-    	if(!d){break;}
-      d = a[c] === b[c];
-    }
-    return d;
-  }
-function combineGxFxFx(f1,f2){
-/*	pass in two objects
-  	same type defined as having identical top level property names (property order does NOT matter)
-*/
-	return function(a,b){
-    	return f2(f1(a), f1(b));
-	}
-}
-var areObjectsSameType = combineGxFxFx(getType, areTypesSame);
+//var areObjectsSameType = combineGxFxFx(util.getType, util.areTypesSame);	//moved to util
 var counter = 0;
 var count = 0;
 
@@ -121,7 +92,7 @@ var count = 0;
 
 	function queryToFile(fileName){
 		console.log("querying...");
-		var filePath = "/PropAPIWrap/work/" + fileName;
+		var filePath = "./PropAPIWrap/work/" + fileName;
 		co( function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(collectionNames.MEMBERS);
@@ -138,7 +109,7 @@ var count = 0;
 //scanBillsForDupes();
 //aggregate();
 
-queryToFile("./member.json");
+queryToFile("/member.json");
 
 // //compares all objects to prototype and logs when it finds a mismatch
 // co(function*(){
