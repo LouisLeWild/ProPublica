@@ -40,6 +40,10 @@ var my = {
 		return ["/congress/v1", session ? session : defaultSession, "bills", billId, "cosponsors.json"].join("/");
 	},
 
+	votesByDatePath: function(chamber, year, month){
+		return ["/congress/v1", chamber, "votes", month, year + ".json"].join("/");	
+	},
+
 	getPropublicaData: function(path, internalEvent, externalEvent){
 		reqConfig = {
 			"hostname": "api.propublica.org", 
@@ -73,11 +77,10 @@ var my = {
 	slug: function(s){
 		var out = [];
 		for(var l in s){
-			if(s[l] != "."){ out.push(s[l]); }
+			if(s[l] != "." || s[l] != " "){ out.push(s[l]); }
 		}
 		return out.join("");
 	}
-
 };
 
 my.setEmitter(me);
@@ -100,10 +103,27 @@ function newcosponsorsListener(data, event){
 	me.emit(event, data.results[0], "billCosponsors");
 }
 
+function newvotesListener(data, event){
+	if(data.status == "OK"){
+		var chamber = data.results.chamber,
+		year = data.results.year,
+		month = data.results.month;
+		for(var v in data.results.votes){
+			var current = data.results.votes[v];
+			current.chamber = chamber; current.year = year; current.month = month;
+			me.emit(event, current, "votes");
+		}
+	}
+	else{
+		me.emit("requestStatusNotOK", "newvotesListener rec'd request status not OK");
+	}
+}
+
 me.on("newactivity", newactivityListener);
 me.on("newfullbill", newfullbillListener);
 me.on("newmember", newmemberListener);
 me.on("newcosponsors", newcosponsorsListener);
+me.on("newvotes", newvotesListener);
 
 me.halt = function(){ me.removeAllListeners();}
 me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
@@ -116,6 +136,13 @@ me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("s
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");}
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");}
 me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");}
+
+
 me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
+
+me.getVotesByMonthAndYear = function(chamber, month, year){ console.log(my.votesByDatePath(chamber, month, year)); 
+	my.getPropublicaData(my.votesByDatePath(chamber, month, year), "newvotes", "vote" );
+	 }
+
 
 module.exports = me;

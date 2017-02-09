@@ -41,6 +41,21 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		fs.appendFileSync("./infolog.txt", message + "\n", "utf8");
 	}
 
+
+	var insertStatusNotOK = function(message){
+		infoLog(message);
+	}
+
+  function getType(a){
+  	/*	pass an object, returned is an array of top level properties
+  	*/
+  	var p=[];
+    for(var c in a){
+    	p.push(c);
+    }
+    return p;
+  }
+
 	function insertBill(bill, collectionName){
 		var dbAddress = DB_Connections.ProPublica,
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
@@ -104,9 +119,29 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 				});
 			}
 			else{	//trouble connecting
-				diskLog("can't connect to " + dbAddress + ". Trying to insert cosponsors;");
+				diskLog("can't connect to " + dbAddress + ". Trying to insert cosponsors.");
 			}
 		});
+	}
+
+	function insertVote(vote, collectionName){
+		var dbAddress = DB_Connections.ProPublica,
+		con = MongoClient.connect(dbAddress, function(err, db){
+			if(!err){
+				db.collection(collectionName).insertOne(vote, function(err, r){
+					if(!err){
+						db.close();
+					}
+					else {
+						diskLog("can't insert vote");
+						db.close();
+					}
+				})
+			}
+			else{
+				diskLog("can't connect to " + dbAddress + ". Trying to insert vote.");
+			}
+		})
 	}
 
 	function insertManyBills(bills, collectionName){	//doesn't work ???
@@ -203,6 +238,7 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
+ppApi.on("requestStatusNotOK", insertStatusNotOK)
 ppApi.on("house_introduced", insertBill);
 ppApi.on("house_updated", insertBill);
 ppApi.on("house_passed", insertBill);
@@ -225,10 +261,11 @@ ppApi.on("bill", insertWholeBill);
 //ppApi.on("bill", soundOff);
 ppApi.on("member", insertMember);
 ppApi.on("cosponsors", insertCosponsors);
+ppApi.on('vote', insertVote);
 
 // ransackIncomingForNewBills();
 // ransackIncomingForNewMembers();
-ransackIncomingBillsForCosponsors();
+//ransackIncomingBillsForCosponsors();
 
 // // test calls
 // ppApi.house_introduced();
@@ -240,7 +277,9 @@ ransackIncomingBillsForCosponsors();
 // ppApi.senate_passed();
 // ppApi.senate_major();
 
-//ppApi.getFullBill("hr726");
+ppApi.getFullBill("hr7");
 // ppApi.getMember("K000388");
 
 //ppApi.getBillCosponsors("1.2.3.45");
+
+//ppApi.getVotesByMonthAndYear("house", 1, 2017);
