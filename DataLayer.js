@@ -56,7 +56,7 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
     return p;
   }
 
-	function insertBill(bill, collectionName){
+	function insertBill(bill, collectionName){		//could use this as a generic insert with a few minor mods
 		var dbAddress = DB_Connections.ProPublica,
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
 			if(!err){
@@ -122,6 +122,26 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 				diskLog("can't connect to " + dbAddress + ". Trying to insert cosponsors.");
 			}
 		});
+	}
+
+	function insertVoteDigest(voteDigest, collectionName){
+		var dbAddress = DB_Connections.ProPublica,
+		con = MongoClient.connect(dbAddress, function(err, db){
+			if(!err){
+				db.collection(collectionName).insertOne(voteDigest, function(err, r){
+					if(!err){
+						db.close();
+					}
+					else {
+						diskLog("can't insert voteDigest");
+						db.close();
+					}
+				})
+			}
+			else{
+				diskLog("can't connect to " + dbAddress + ". Trying to insert voteDigest.");
+			}
+		})
 	}
 
 	function insertVote(vote, collectionName){
@@ -261,7 +281,7 @@ ppApi.on("bill", insertWholeBill);
 //ppApi.on("bill", soundOff);
 ppApi.on("member", insertMember);
 ppApi.on("cosponsors", insertCosponsors);
-ppApi.on('vote', insertVote);
+ppApi.on("votedigest", insertVoteDigest);
 
 // ransackIncomingForNewBills();
 // ransackIncomingForNewMembers();
@@ -277,9 +297,9 @@ ppApi.on('vote', insertVote);
 // ppApi.senate_passed();
 // ppApi.senate_major();
 
-ppApi.getFullBill("hr7");
+//ppApi.getFullBill("hr7");
 // ppApi.getMember("K000388");
 
 //ppApi.getBillCosponsors("1.2.3.45");
 
-//ppApi.getVotesByMonthAndYear("house", 1, 2017);
+ppApi.getVotesByMonthAndYear("house", 1, 2017);

@@ -111,11 +111,20 @@ function newvotesListener(data, event){
 		for(var v in data.results.votes){
 			var current = data.results.votes[v];
 			current.chamber = chamber; current.year = year; current.month = month;
-			me.emit(event, current, "votes");
+			me.emit(event, current, "votedigests");
 		}
 	}
-	else{
+	else {
 		me.emit("requestStatusNotOK", "newvotesListener rec'd request status not OK");
+	}
+}
+
+function newfullvoteListener(data, event){
+	if(data.status == "OK"){
+		me.emit(event, data.results.votes.vote)
+	}
+	else {
+		me.emit("requestStatusNotOK", "newfullvotesListener rec'd request status not OK");
 	}
 }
 
@@ -124,6 +133,7 @@ me.on("newfullbill", newfullbillListener);
 me.on("newmember", newmemberListener);
 me.on("newcosponsors", newcosponsorsListener);
 me.on("newvotes", newvotesListener);
+me.on("newfullvote", newfullvoteListener);
 
 me.halt = function(){ me.removeAllListeners();}
 me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
@@ -141,8 +151,9 @@ me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.
 me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
 
 me.getVotesByMonthAndYear = function(chamber, month, year){ console.log(my.votesByDatePath(chamber, month, year)); 
-	my.getPropublicaData(my.votesByDatePath(chamber, month, year), "newvotes", "vote" );
+	my.getPropublicaData(my.votesByDatePath(chamber, month, year), "newvotes", "votedigest" );
 	 }
 
+me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote")}
 
 module.exports = me;
