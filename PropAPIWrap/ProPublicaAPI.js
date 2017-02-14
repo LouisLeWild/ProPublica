@@ -45,6 +45,8 @@ var my = {
 	},
 
 	getPropublicaData: function(path, internalEvent, externalEvent){
+		console.log("path:", path);
+		if(path.indexOf("http") == 0){ path = my.uriPath(path);}
 		reqConfig = {
 			"hostname": "api.propublica.org", 
 			"path": path,
@@ -54,6 +56,9 @@ var my = {
 
 		var req = https.request(reqConfig, function(res){
 			console.log("request rec\'d response", res.statusCode, res.statusMessage, externalEvent);
+			if(res.statusCode != 200){
+				my.emitter.emit("responsenotok", {"timestamp": new Date().toString(), "responseStatus": res.statusCode, "responseMessage": res.statusMessage, "functionName": "getPropublicaData", "argsSent": { "path": path, "internalEvent": internalEvent, "externalEvent": externalEvent}} );
+			}
 
 		var respData = "";
 		
@@ -80,6 +85,10 @@ var my = {
 			if(s[l] != "." || s[l] != " "){ out.push(s[l]); }
 		}
 		return out.join("");
+	},
+
+	uriPath: function(uri){
+		return "/" + uri.split("/").slice(3).join("/");
 	}
 };
 
@@ -121,7 +130,7 @@ function newvotesListener(data, event){
 
 function newfullvoteListener(data, event){
 	if(data.status == "OK"){
-		me.emit(event, data.results.votes.vote)
+		me.emit(event, data.results.votes.vote, "votes");
 	}
 	else {
 		me.emit("requestStatusNotOK", "newfullvotesListener rec'd request status not OK");

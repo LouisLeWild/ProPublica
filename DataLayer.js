@@ -17,7 +17,9 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 							"BILLS": "bills",
 							"INCOMING_BILLS": "incomingbills",
 							"MEMBERS": "members",
-							"BILL_COSPONSORS": "billcosponsors"
+							"BILL_COSPONSORS": "billcosponsors",
+							"VOTE_DIGESTS": "votedigests",
+							"VOTES": "votes"
 					};
 
 
@@ -38,7 +40,7 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}(0, false);
 
 	var infoLog = function(message){
-		fs.appendFileSync("./infolog.txt", message + "\n", "utf8");
+		fs.appendFileSync("./infolog.txt", message + ";\n", "utf8");
 	}
 
 
@@ -257,7 +259,48 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		});		
 	}
 
+	function ransackVotesDigestsForVotes(){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
+			var votes = db.collection(ProPublica_Collections.VOTES);
+			var allDigests = yield digests.find().toArray();
+			for(var v in allDigests){
+				var current = allDigests[v];
+				var count = yield votes.find({"roll_call": current.roll_call}).count();
+				if(count === 0){
+					ppApi.getFullVote(current.vote_uri);
+				}
+			}
+			db.close();
+		});
+	}
+
+	function insertResponseStatusNotOk(errorData){
+		var dbAddress = DB_Connections.ProPublica,
+		collectionName = "responsenotok",
+		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
+			if(!err){
+				db.collection(collectionName).insertOne(errorData, function(err, r){
+					if(!err){
+						db.close();
+					}
+					else {	//trouble inserting bill
+						diskLog("can't insert response error data into " + collectionName);
+						db.close();
+					}
+				});
+			}
+			else {	//trouble connecting
+				diskLog("cant connect to " + dbAddress + ". Trying to insert bill into " + collectionName + ".");
+			}
+		});		
+	}
+
+
+
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
+ppApi.on("responsenotok", insertResponseStatusNotOk)
 ppApi.on("requestStatusNotOK", insertStatusNotOK)
 ppApi.on("house_introduced", insertBill);
 ppApi.on("house_updated", insertBill);
@@ -282,10 +325,12 @@ ppApi.on("bill", insertWholeBill);
 ppApi.on("member", insertMember);
 ppApi.on("cosponsors", insertCosponsors);
 ppApi.on("votedigest", insertVoteDigest);
+ppApi.on("vote", insertVote);
 
 // ransackIncomingForNewBills();
 // ransackIncomingForNewMembers();
-//ransackIncomingBillsForCosponsors();
+// ransackIncomingBillsForCosponsors();
+ransackVotesDigestsForVotes();
 
 // // test calls
 // ppApi.house_introduced();
@@ -302,4 +347,4 @@ ppApi.on("votedigest", insertVoteDigest);
 
 //ppApi.getBillCosponsors("1.2.3.45");
 
-ppApi.getVotesByMonthAndYear("house", 1, 2017);
+//ppApi.getVotesByMonthAndYear("house", 1, 2017);
