@@ -7,16 +7,19 @@ var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
 var ProPublica_Collections = {"BILLS": "bills"};
 
 var collectionNames = { "HOUSE_INTRODUCED":"house_introduced",
-						"HOUSE_UPDATED":"house_updated",
-						"HOUSE_PASSED":"house_passed",
-						"HOUSE_MAJOR":"house_major",
-						"SENATE_INTRODUCED":"senate_introduced",
-						"SENATE_UPDATED":"senate_updated",
-						"SENATE_PASSED":"senate_passed",
-						"BILLS": "bills",
-						"MEMBERS": "members",
-						"SENATE_MAJOR":"senate_major",
-						"INCOMING_BILLS": "incomingbills"
+							"HOUSE_UPDATED":"house_updated",
+							"HOUSE_PASSED":"house_passed",
+							"HOUSE_MAJOR":"house_major",
+							"SENATE_INTRODUCED":"senate_introduced",
+							"SENATE_UPDATED":"senate_updated",
+							"SENATE_PASSED":"senate_passed",
+							"SENATE_MAJOR":"senate_major",
+							"BILLS": "bills",
+							"INCOMING_BILLS": "incomingbills",
+							"MEMBERS": "members",
+							"BILL_COSPONSORS": "billcosponsors",
+							"VOTE_DIGESTS": "votedigests",
+							"VOTES": "votes"
 					};
 
 //var areObjectsSameType = combineGxFxFx(util.getType, util.areTypesSame);	//moved to util
@@ -28,8 +31,10 @@ var count = 0;
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			db.dropDatabase();
 			
-			var x = yield db.collection("bills").ensureIndex({"bill": 1}, {"unique": true, "dropDups": true});
+			var x = yield db.collection("bills").ensureIndex({"congress": 1, "bill": 1}, {"unique": true, "dropDups": true});
 			var x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
+			var x = yield db.collection("votes").ensureIndex({ "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 }, {"unique": true, "dropDups": true});
+
 			
 			db.close();
 		});
@@ -95,8 +100,8 @@ var count = 0;
 		var filePath = "./PropAPIWrap/work/" + fileName;
 		co( function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
-			var col = db.collection(collectionNames.MEMBERS);
-			var result = yield col.find({"member_id": "P000609"}).toArray();
+			var col = db.collection(collectionNames.VOTES);
+			var result = yield col.find().limit(1).toArray();
 			
 			db.close();
 			fs.writeFileSync(filePath, JSON.stringify(result, null, 2), "utf8");
@@ -109,7 +114,7 @@ var count = 0;
 //scanBillsForDupes();
 //aggregate();
 
-queryToFile("/member.json");
+queryToFile("/vote.json");
 
 // //compares all objects to prototype and logs when it finds a mismatch
 // co(function*(){
