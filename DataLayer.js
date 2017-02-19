@@ -2,7 +2,7 @@ var MongoClient = require("mongodb").MongoClient;
 var ppApi = require("./PropAPIWrap/ProPublicaAPI.js");
 var fs = require("fs");
 var co = require("co");
-
+var util = require('./util');
 
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
@@ -259,7 +259,7 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		});		
 	}
 
-	function ransackVotesDigestsForVotes(){
+	function ransackVotesDigestsForVotes_DEP(){
 		co(function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica)
 			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
@@ -275,6 +275,34 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 			db.close();
 		});
 	}
+
+	function ransackVotesDigestsForVotes(){
+		co(function*(){
+			var uris = [];
+			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
+			var votes = db.collection(ProPublica_Collections.VOTES);
+			var allDigests = yield digests.find().toArray();
+			for(var v in allDigests){
+				var current = allDigests[v];
+				var count = yield votes.find({"roll_call": current.roll_call}).count();
+				if(count === 0){
+					uris.push(current.vote_uri);
+				}
+			}
+			db.close();
+
+			console.log("uris.length ==", uris.length);
+			var batchGen = util.batchGenerator(uris, 10);
+			var processor = util.promiseArrayProcessor(function(val){
+				return new Promise(function(resolve, reject){
+					ppApi.getFullVote(val, this); 
+				});
+			});
+			var iterator = util.iterator(batchGen, processor);
+			util.triggerIterator(iterator, function(){ console.log("finished a batch of vote digests");});
+		});
+	}	
 
 	function insertResponseStatusNotOk(errorData){
 		var dbAddress = DB_Connections.ProPublica,
@@ -296,8 +324,6 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 			}
 		});		
 	}
-
-
 
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
 ppApi.on("responsenotok", insertResponseStatusNotOk)

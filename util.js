@@ -20,6 +20,46 @@ var me = {
 		  d = a[c] === b[c];
 		}
 		return d;
+	},
+
+	simpleGenerator: function*(collection){
+		for(var a in collection){
+			yield(collection[a]);
+		}
+	},
+
+	batchGenerator: function(collection, batchsize){
+		return my.batchGenerator(collection, batchsize);
+	},
+
+	iterator: function*(generator, processor){
+		var n;
+		while(!(n = generator.next()).done){
+			yield processor(n.value);
+		}
+	},
+
+	promiseArrayProcessor: function(promiser){
+		return function(myArray){
+			var p = [],
+				i;
+			for(i in myArray){
+				p.push(promiser(myArray[i]));
+			}
+			return Promise.all(p);
+		};
+	},
+
+	triggerIterator: function(iterator, doThen){
+
+		function next(){
+			console.log('called next() ... yep sure did!');
+			var n;
+			if( (n = (iterator.next())).done ) return;
+			n.value.then( function(val){ doThen(val); next();});
+			
+		}
+		next();
 	}
 },
 my = {
@@ -30,7 +70,14 @@ my = {
 		return function(a,b){
 			return f2(f1(a), f1(b));
 		}
-	}
+	},
+
+	batchGenerator: function*(collection, batchsize){
+		var i;
+		for(i=1; collection.length - ((i-1)*batchsize) > 0 ; i++){
+	  		yield collection.slice((i*batchsize)-batchsize,i*batchsize);
+	  	}
+	}	
 };
 
 me.areObjectsSameType = my.combineGxFxFx(my.getType, my.areTypesSame);
