@@ -4,6 +4,8 @@ apikey = fs.readFileSync("./public/apikey", "utf8"),
 defaultSession = 115;
 //console.log(defaultSession)
 
+var util = require("../util.js");
+
 const events = require("events");
 class EventEmitter extends events {};
 
@@ -163,6 +165,43 @@ me.getVotesByMonthAndYear = function(chamber, month, year){ console.log(my.votes
 	my.getPropublicaData(my.votesByDatePath(chamber, month, year), "newvotes", "votedigest" );
 	 }
 
-me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote")}
+me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote")};
+
+me.getFullVotePromise = function(path){ return new Promise(function(resolve, reject){
+
+		var internalEvent = "newfullvote";
+		var externalEvent = "vote";
+		console.log("path:", path);
+		if(path.indexOf("http") == 0){ path = my.uriPath(path);}
+		reqConfig = {
+			"hostname": "api.propublica.org", 
+			"path": path,
+			"method": "GET",
+			"headers": { "X-API-Key" : apikey }
+		};
+
+		var req = https.request(reqConfig, function(res){
+			console.log("request rec\'d response", res.statusCode, res.statusMessage, externalEvent);
+			if(res.statusCode != 200){
+				my.emitter.emit("responsenotok", {"timestamp": new Date().toString(), "responseStatus": res.statusCode, "responseMessage": res.statusMessage, "functionName": "getPropublicaData", "argsSent": { "path": path, "internalEvent": internalEvent, "externalEvent": externalEvent}} );
+				reject(0);
+			}
+
+		var respData = "";
+		
+		res.on("data", (d) => {
+			var buf = Buffer.from(d);
+			respData += buf.toString("utf8");			
+		  });
+
+		res.on("end", () => {
+			var responseObject = JSON.parse(respData);
+			my.emitter.emit(internalEvent, responseObject, externalEvent);
+			resolve(1);
+			});
+		});
+		req.end();
+		});
+	}
 
 module.exports = me;

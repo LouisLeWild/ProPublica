@@ -28,8 +28,11 @@ var me = {
 		}
 	},
 
-	batchGenerator: function(collection, batchsize){
-		return my.batchGenerator(collection, batchsize);
+	batchGenerator: function*(collection, batchsize){
+		var i;
+		for(i=1; collection.length - ((i-1)*batchsize) > 0 ; i++){
+	  		yield collection.slice((i*batchsize)-batchsize,i*batchsize);
+	  	}
 	},
 
 	iterator: function*(generator, processor){
@@ -70,14 +73,9 @@ my = {
 		return function(a,b){
 			return f2(f1(a), f1(b));
 		}
-	},
+	}
 
-	batchGenerator: function*(collection, batchsize){
-		var i;
-		for(i=1; collection.length - ((i-1)*batchsize) > 0 ; i++){
-	  		yield collection.slice((i*batchsize)-batchsize,i*batchsize);
-	  	}
-	}	
+
 };
 
 me.areObjectsSameType = my.combineGxFxFx(my.getType, my.areTypesSame);

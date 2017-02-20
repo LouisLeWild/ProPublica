@@ -292,13 +292,8 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 			}
 			db.close();
 
-			console.log("uris.length ==", uris.length);
 			var batchGen = util.batchGenerator(uris, 10);
-			var processor = util.promiseArrayProcessor(function(val){
-				return new Promise(function(resolve, reject){
-					ppApi.getFullVote(val, this); 
-				});
-			});
+			var processor = util.promiseArrayProcessor(ppApi.getFullVotePromise);
 			var iterator = util.iterator(batchGen, processor);
 			util.triggerIterator(iterator, function(){ console.log("finished a batch of vote digests");});
 		});
