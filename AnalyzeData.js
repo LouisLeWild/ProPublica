@@ -1,7 +1,8 @@
+/*jshint esversion: 6 */
 var MongoClient = require('mongodb').MongoClient;
 var co = require('co');
 var fs = require('fs');
-var util = require('util');
+var util = require('util'); 
 
 var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
 var ProPublica_Collections = {"BILLS": "bills"};
@@ -32,8 +33,8 @@ var count = 0;
 			db.dropDatabase();
 			
 			var x = yield db.collection("bills").ensureIndex({"congress": 1, "bill": 1}, {"unique": true, "dropDups": true});
-			var x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
-			var x = yield db.collection("votes").ensureIndex({ "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 }, {"unique": true, "dropDups": true});
+			 x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
+			 x = yield db.collection("votes").ensureIndex({ "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 }, {"unique": true, "dropDups": true});
 
 			
 			db.close();

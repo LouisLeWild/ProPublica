@@ -1,4 +1,5 @@
-var MongoClient = require("mongodb").MongoClient,
+/*jshint esversion: 6 */
+var MongoClient = require("mongodb").MongoClient, 
 	ppApi = require("./PropAPIWrap/ProPublicaAPI.js"),
 	fs = require("fs"),
 	co = require("co"),
@@ -34,7 +35,7 @@ var MongoClient = require("mongodb").MongoClient,
 					ppApi.halt();
 				}
 			}
-		}
+		};
 	}(0, false);
 
 	function infoLog(message){
@@ -46,24 +47,27 @@ var MongoClient = require("mongodb").MongoClient,
 		infoLog(message);
 	}
 
-	function insertBill(bill, collectionName){		//could use this as a generic insert with a few minor mods
-		var dbAddress = DB_Connections.ProPublica,
+	function insertOne(obj, collectionName){		//could use this as a generic insert with a few minor mods
 		conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
 			if(!err){
-				db.collection(collectionName).insertOne(bill, function(err, r){
+				db.collection(collectionName).insertOne(obj, function(err, r){
 					if(!err){
 						db.close();
 					}
 					else {	//trouble inserting bill
-						diskLog("can't insert bill into " + collectionName);
+						diskLog("can't insert object into " + collectionName + ".");
 						db.close();
 					}
 				});
 			}
 			else {	//trouble connecting
-				diskLog("cant connect to " + dbAddress + ". Trying to insert bill into " + collectionName + ".");
+				diskLog("cant connect to " + dbAddress + ". Trying to insert object into " + collectionName + ".");
 			}
 		});
+	}
+
+	function insertBill(bill, collectionName){
+		insertOne(bill, collectionName);
 	}
 
 	function insertIncomingBillToProcessingTable(bill){
@@ -75,83 +79,19 @@ var MongoClient = require("mongodb").MongoClient,
 	}
 
 	function insertMember(member, collectionName){
-		var dbAddress = DB_Connections.ProPublica,
-		con = MongoClient.connect(dbAddress, function(err, db){
-			if(!err){
-				db.collection(collectionName).insertOne(member, function(err, r){
-					if(!err){
-						db.close();
-					}
-					else{	//trouble inserting member
-						diskLog("cant insert member.");
-						db.close();
-					}
-				})
-			}
-			else {	//trouble connecting
-				diskLog("cant connect to " + dbAddress + ". Trying to insert member.");
-			}
-		});
+		insertOne(member, collectionName);
 	}
 
 	function insertCosponsors(billCosponsors, collectionName){
-		var dbAddress = DB_Connections.ProPublica,
-		con = MongoClient.connect(dbAddress, function(err, db){
-			if(!err){
-				db.collection(collectionName).insertOne(billCosponsors, function(err, r){
-					if(!err){
-						db.close();
-					}
-					else {
-						diskLog("can't insert billCosponsors");
-						db.close();
-					}
-				});
-			}
-			else{	//trouble connecting
-				diskLog("can't connect to " + dbAddress + ". Trying to insert cosponsors.");
-			}
-		});
+		insertOne(billCosponsors, collectionName);
 	}
 
 	function insertVoteDigest(voteDigest, collectionName){
-		var dbAddress = DB_Connections.ProPublica,
-		con = MongoClient.connect(dbAddress, function(err, db){
-			if(!err){
-				db.collection(collectionName).insertOne(voteDigest, function(err, r){
-					if(!err){
-						db.close();
-					}
-					else {
-						diskLog("can't insert voteDigest");
-						db.close();
-					}
-				})
-			}
-			else{
-				diskLog("can't connect to " + dbAddress + ". Trying to insert voteDigest.");
-			}
-		})
+		insertOne(voteDigest, collectionName);
 	}
 
 	function insertVote(vote, collectionName){
-		var dbAddress = DB_Connections.ProPublica,
-		con = MongoClient.connect(dbAddress, function(err, db){
-			if(!err){
-				db.collection(collectionName).insertOne(vote, function(err, r){
-					if(!err){
-						db.close();
-					}
-					else {
-						diskLog("can't insert vote");
-						db.close();
-					}
-				})
-			}
-			else{
-				diskLog("can't connect to " + dbAddress + ". Trying to insert vote.");
-			}
-		})
+		insertOne(vote, collectionName);
 	}
 
 	function insertManyBills(bills, collectionName){	//doesn't work ???
@@ -213,7 +153,7 @@ var MongoClient = require("mongodb").MongoClient,
 
 	function ransackIncomingBillsForCosponsors(){
 		co(function*(){
-			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
 			var docs = yield col.find().toArray();
 			db.close();
@@ -225,7 +165,7 @@ var MongoClient = require("mongodb").MongoClient,
 
 	function cosponsorsUnknown(billId){
 		co(function*(){
-			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.BILL_COSPONSORS);
 			var count = yield col.find({"bill": billId}).count();
 			db.close();
@@ -250,7 +190,7 @@ var MongoClient = require("mongodb").MongoClient,
 	function ransackVotesDigestsForVotes(){
 		co(function*(){
 			var uris = [];
-			var db = yield MongoClient.connect(DB_Connections.ProPublica)
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
 			var votes = db.collection(ProPublica_Collections.VOTES);
 			var allDigests = yield digests.find().toArray();
@@ -319,10 +259,10 @@ ppApi.on("cosponsors", insertCosponsors);
 ppApi.on("votedigest", insertVoteDigest);
 ppApi.on("vote", insertVote);
 
-// ransackIncomingForNewBills();
+//ransackIncomingForNewBills();
 // ransackIncomingForNewMembers();
-// ransackIncomingBillsForCosponsors();
-ransackVotesDigestsForVotes();
+ //ransackIncomingBillsForCosponsors();
+ ransackVotesDigestsForVotes();
 
 // // test calls
 // ppApi.house_introduced();
@@ -334,9 +274,6 @@ ransackVotesDigestsForVotes();
 // ppApi.senate_passed();
 // ppApi.senate_major();
 
-//ppApi.getFullBill("hr7");
-// ppApi.getMember("K000388");
 
-//ppApi.getBillCosponsors("1.2.3.45");
-
-//ppApi.getVotesByMonthAndYear("house", 1, 2017);
+// ppApi.getVotesByMonthAndYear("senate", 1, 2017);
+// ppApi.getVotesByMonthAndYear("senate", 2, 2017);

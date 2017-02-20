@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 var fs = require("fs"),
 	https = require("https"),
 	apikey = fs.readFileSync("./public/apikey", "utf8"),
@@ -5,7 +6,7 @@ var fs = require("fs"),
 	util = require("../util.js");
 
 const events = require("events");
-class EventEmitter extends events {};
+class EventEmitter extends events {}
 
 var me = new EventEmitter();
 
@@ -46,7 +47,7 @@ var my = {
 
 	getPropublicaData: function(path, internalEvent, externalEvent){
 		console.log("path:", path);
-		if(path.indexOf("http") == 0){ path = my.uriPath(path);}
+		if(path.indexOf("http") === 0){ path = my.uriPath(path);}
 		reqConfig = {
 			"hostname": "api.propublica.org", 
 			"path": path,
@@ -76,13 +77,13 @@ var my = {
 	},
 
 	getBill: function(path, session){
-		getPropublicaData(path, "newactivity", "incomingbills")
+		getPropublicaData(path, "newactivity", "incomingbills");
 	},
 
 	slug: function(s){
 		var out = [];
 		for(var l in s){
-			if(s[l] != "." || s[l] != " "){ out.push(s[l]); }
+			if(s[l] != "." && s[l] != " "){ out.push(s[l]); }
 		}
 		return out.join("");
 	},
@@ -95,25 +96,46 @@ var my = {
 my.setEmitter(me);
 
 function newactivityListener(data, event){
-	for(var r in data.results){
-		for(var n in data.results[r].bills){
-			var current = data.results[r].bills[n];
-			me.emit(event, current, event); //insertBill(current, collectionName);
-		}
+	if(data.status === "OK"){
+		for(var r in data.results){
+			for(var n in data.results[r].bills){
+				var current = data.results[r].bills[n];
+				me.emit(event, current, event); //insertBill(current, collectionName);
+			}
+		}	
+	}
+	else{
+		me.emit("requestStatusNotOK", "newactivityListener rec'd request status not OK");
 	}	
 }
 function newfullbillListener(data, event){
-	me.emit(event, data.results[0], "bills");	
+	if(data.status === "OK"){
+		me.emit(event, data.results[0], "bills");	
+	}
+	else{
+		me.emit("requestStatusNotOK", "newfullbillListener rec'd request status not OK");
+	}
+	
 }
 function newmemberListener(data, event){
-	me.emit(event, data.results[0], "members");
+	if(data.status === "OK"){
+		me.emit(event, data.results[0], "members");	
+	}
+	else{
+		me.emit("requestStatusNotOK", "newmemberListener rec'd request status not OK");
+	}
 }
 function newcosponsorsListener(data, event){
-	me.emit(event, data.results[0], "billCosponsors");
+	if(data.status === "OK"){
+		me.emit(event, data.results[0], "billCosponsors");
+	}
+	else {
+		me.emit("requestStatusNotOK", "newcosponsorsListener rec'd request status not OK");
+	}
 }
 
 function newvotesListener(data, event){
-	if(data.status == "OK"){
+	if(data.status === "OK"){
 		var chamber = data.results.chamber,
 		year = data.results.year,
 		month = data.results.month;
@@ -144,33 +166,33 @@ me.on("newcosponsors", newcosponsorsListener);
 me.on("newvotes", newvotesListener);
 me.on("newfullvote", newfullvoteListener);
 
-me.halt = function(){ me.removeAllListeners();}
-me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");}
-me.house_updated = function(session){ my.getPropublicaData(my.recentBillsPath("house", "updated", session),"newactivity","house_updated");}
-me.house_passed = function(session){ my.getPropublicaData(my.recentBillsPath("house", "passed", session),"newactivity","house_passed");}
-me.house_major = function(session){ my.getPropublicaData(my.recentBillsPath("house", "major", session),"newactivity","house_major");}
-me.senate_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "introduced", session),"newactivity","senate_introduced");}
-me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "updated", session),"newactivity","senate_updated");}
-me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");}
-me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");}
-me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");}
-me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");}
+me.halt = function(){ me.removeAllListeners();};
+me.house_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("house", "introduced", session),"newactivity","house_introduced");};
+me.house_updated = function(session){ my.getPropublicaData(my.recentBillsPath("house", "updated", session),"newactivity","house_updated");};
+me.house_passed = function(session){ my.getPropublicaData(my.recentBillsPath("house", "passed", session),"newactivity","house_passed");};
+me.house_major = function(session){ my.getPropublicaData(my.recentBillsPath("house", "major", session),"newactivity","house_major");};
+me.senate_introduced = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "introduced", session),"newactivity","senate_introduced");};
+me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "updated", session),"newactivity","senate_updated");};
+me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");};
+me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");};
+me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");};
+me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");};
 
 
-me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); }
+me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); };
 
 me.getVotesByMonthAndYear = function(chamber, month, year){ console.log(my.votesByDatePath(chamber, month, year)); 
 	my.getPropublicaData(my.votesByDatePath(chamber, month, year), "newvotes", "votedigest" );
-	 }
+	 };
 
-me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote")};
+me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote");};
 
 me.getFullVotePromise = function(path){ return new Promise(function(resolve, reject){
 
 		var internalEvent = "newfullvote";
 		var externalEvent = "vote";
 		console.log("path:", path);
-		if(path.indexOf("http") == 0){ path = my.uriPath(path);}
+		if(path.indexOf("http") === 0){ path = my.uriPath(path);}
 		reqConfig = {
 			"hostname": "api.propublica.org", 
 			"path": path,
@@ -200,6 +222,6 @@ me.getFullVotePromise = function(path){ return new Promise(function(resolve, rej
 		});
 		req.end();
 		});
-	}
+	};
 
 module.exports = me;
