@@ -1,12 +1,11 @@
-var MongoClient = require("mongodb").MongoClient;
-var ppApi = require("./PropAPIWrap/ProPublicaAPI.js");
-var fs = require("fs");
-var co = require("co");
-var util = require('./util');
+var MongoClient = require("mongodb").MongoClient,
+	ppApi = require("./PropAPIWrap/ProPublicaAPI.js"),
+	fs = require("fs"),
+	co = require("co"),
+	util = require('./util'),
 
-
-var DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"};
-var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
+	DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"},
+	ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 							"HOUSE_UPDATED":"house_updated",
 							"HOUSE_PASSED":"house_passed",
 							"HOUSE_MAJOR":"house_major",
@@ -21,7 +20,6 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 							"VOTE_DIGESTS": "votedigests",
 							"VOTES": "votes"
 					};
-
 
 	var diskLog = function(count, blocked){
 		return function(message){
@@ -39,24 +37,14 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		}
 	}(0, false);
 
-	var infoLog = function(message){
+	function infoLog(message){
 		fs.appendFileSync("./infolog.txt", message + ";\n", "utf8");
 	}
 
 
-	var insertStatusNotOK = function(message){
+	function insertStatusNotOK(message){
 		infoLog(message);
 	}
-
-  function getType(a){
-  	/*	pass an object, returned is an array of top level properties
-  	*/
-  	var p=[];
-    for(var c in a){
-    	p.push(c);
-    }
-    return p;
-  }
 
 	function insertBill(bill, collectionName){		//could use this as a generic insert with a few minor mods
 		var dbAddress = DB_Connections.ProPublica,
@@ -259,23 +247,6 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 		});		
 	}
 
-	function ransackVotesDigestsForVotes_DEP(){
-		co(function*(){
-			var db = yield MongoClient.connect(DB_Connections.ProPublica)
-			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
-			var votes = db.collection(ProPublica_Collections.VOTES);
-			var allDigests = yield digests.find().toArray();
-			for(var v in allDigests){
-				var current = allDigests[v];
-				var count = yield votes.find({"roll_call": current.roll_call}).count();
-				if(count === 0){
-					ppApi.getFullVote(current.vote_uri);
-				}
-			}
-			db.close();
-		});
-	}
-
 	function ransackVotesDigestsForVotes(){
 		co(function*(){
 			var uris = [];
@@ -321,8 +292,8 @@ var ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
 	}
 
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
-ppApi.on("responsenotok", insertResponseStatusNotOk)
-ppApi.on("requestStatusNotOK", insertStatusNotOK)
+ppApi.on("responsenotok", insertResponseStatusNotOk);
+ppApi.on("requestStatusNotOK", insertStatusNotOK);
 ppApi.on("house_introduced", insertBill);
 ppApi.on("house_updated", insertBill);
 ppApi.on("house_passed", insertBill);

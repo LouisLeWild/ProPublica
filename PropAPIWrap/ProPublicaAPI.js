@@ -1,10 +1,8 @@
 var fs = require("fs"),
-https = require("https"),
-apikey = fs.readFileSync("./public/apikey", "utf8"),
-defaultSession = 115;
-//console.log(defaultSession)
-
-var util = require("../util.js");
+	https = require("https"),
+	apikey = fs.readFileSync("./public/apikey", "utf8"),
+	defaultSession = 115,
+	util = require("../util.js");
 
 const events = require("events");
 class EventEmitter extends events {};
