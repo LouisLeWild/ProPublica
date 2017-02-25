@@ -1,6 +1,7 @@
+/*jshint esversion: 6 */
 var fs = require('fs');
 const EventEmitter = require('events');
-class propApi_E extends EventEmitter {};
+class propApi_E extends EventEmitter {}
 
 var propApi = new propApi_E();
 
@@ -18,6 +19,6 @@ var my = {
 		var billString = fs.readFileSync('./PropAPIWrap/resp.json');
 		return JSON.parse(billString);
 	}
-}
+};
 
 module.exports = propApi;

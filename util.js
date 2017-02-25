@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 var me = {
 	getType: function(a){
 	  	/*	pass an object, returnes an array of top level properties
@@ -72,10 +73,8 @@ my = {
 		*/
 		return function(a,b){
 			return f2(f1(a), f1(b));
-		}
+		};
 	}
-
-
 };
 
 me.areObjectsSameType = my.combineGxFxFx(my.getType, my.areTypesSame);
