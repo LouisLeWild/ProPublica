@@ -1,9 +1,10 @@
-/*jshint esversion: 6 */
+/* jshint esversion: 6 */
 var MongoClient = require("mongodb").MongoClient, 
 	ppApi = require("./PropAPIWrap/ProPublicaAPI.js"),
 	fs = require("fs"),
 	co = require("co"),
-	util = require('./util'),
+	util = require("./util"),
+	sha1 = require("sha1"),
 
 	DB_Connections = {"ProPublica": "mongodb://localhost:27017/ProPublica"},
 	ProPublica_Collections = { "HOUSE_INTRODUCED":"house_introduced",
@@ -17,10 +18,19 @@ var MongoClient = require("mongodb").MongoClient,
 							"BILLS": "bills",
 							"INCOMING_BILLS": "incomingbills",
 							"MEMBERS": "members",
-							"BILL_COSPONSORS": "billcosponsors",
+							"BILL_COSPONSORS": "billCosponsors",
 							"VOTE_DIGESTS": "votedigests",
-							"VOTES": "votes"
+							"VOTES": "votes",
+							"BILL_ACTIONS": "billActions"
 					};
+	
+	DB_Indexes = { 			"BILLS": {"congress": 1, "bill": 1},
+							"MEMBERS": {"member_id": 1},
+							"VOTES": { "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 },
+							"BILL_ACTIONS": {"number": 1, "sha1": 1}
+					};
+
+
 
 	var diskLog = function(count, blocked){
 		return function(message){
@@ -44,7 +54,7 @@ var MongoClient = require("mongodb").MongoClient,
 
 
 	function insertStatusNotOK(message){
-		infoLog(message);
+		infoLog(new Date().toString() + " " + message);
 	}
 
 	function insertOne(obj, collectionName){		//could use this as a generic insert with a few minor mods
@@ -66,16 +76,43 @@ var MongoClient = require("mongodb").MongoClient,
 		});
 	}
 
-	function insertBill(bill, collectionName){
+	function upsertBill(bill){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
+			var res = yield col.update(DB_Indexes.BILLS, bill, {"upsert": true});
+			db.close();
+		})
+		.then(function(){}, function(err){
+			diskLog("trouble upserting " + bill.bill);
+		});
+	}
+
+
+	function shaobj(obj){
+		return sha1(JSON.stringify(obj));
+	}
+
+	function insertIncomingBill(bill, collectionName){
 		insertOne(bill, collectionName);
 	}
 
-	function insertIncomingBillToProcessingTable(bill){
-		insertBill(bill, "incomingbills");
+	function insertIncomingBillToProcessingTable(bill, origin){
+		insertOne(bill, "incomingbills");
+		insertBillDigestMeta(bill, origin);
+	}
+
+	function insertBillDigestMeta(bill, origin){
+		var obj = {};
+		obj.number = bill.number;
+		obj.latest_major_action_date = bill.latest_major_action_date;
+		obj.sha1 = shaobj(bill);
+		obj.origin = origin;
+		insertOne(obj, "billActions");
 	}
 
 	function insertWholeBill(bill, collectionName){
-		insertBill(bill, collectionName);
+		upsertBill(bill);
 	}
 
 	function insertMember(member, collectionName){
@@ -113,17 +150,20 @@ var MongoClient = require("mongodb").MongoClient,
 			var docs = yield col.find().toArray();
 			for(var d in docs){
 				var current = docs[d];
-				billUnknown(current.number);
+		//console.log("current.number:", current.number, "current.lmad:", current.latest_major_action_date);
+		console.log(JSON.stringify(current, null, 2));
+				billUnknown(current.number, current.latest_major_action_date);
 			}
 			db.close();
 		});
 	}
 
-	function billUnknown(billNumber){
+	function billUnknown(billNumber, latestMajorActionDate){
+		console.log("billNumber:", billNumber, "latestMajorActionDate:", latestMajorActionDate);
 		co( function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.BILLS);
-			var docs = yield col.find({"bill": billNumber}).toArray();
+			var docs = yield col.find({"bill": billNumber, "latest_major_action_date": latestMajorActionDate}).toArray();
 			db.close();
 			if(!docs.length){
 				ppApi.getFullBill(billNumber);
@@ -204,9 +244,9 @@ var MongoClient = require("mongodb").MongoClient,
 			db.close();
 
 			var batchGen = util.batchGenerator(uris, 10);
-			var processor = util.promiseArrayProcessor(ppApi.getFullVotePromise);
+			var processor = util.promiseArrayProcessorAll(ppApi.getFullVotePromise);
 			var iterator = util.iterator(batchGen, processor);
-			util.triggerIterator(iterator, function(){ console.log("finished a batch of vote digests");});
+			util.triggerIterator(iterator, function(){ });
 		});
 	}	
 
@@ -234,14 +274,14 @@ var MongoClient = require("mongodb").MongoClient,
 ppApi.on("madeRequest", function(){console.log("madeRequest fired");});
 ppApi.on("responsenotok", insertResponseStatusNotOk);
 ppApi.on("requestStatusNotOK", insertStatusNotOK);
-ppApi.on("house_introduced", insertBill);
-ppApi.on("house_updated", insertBill);
-ppApi.on("house_passed", insertBill);
-ppApi.on("house_major", insertBill);
-ppApi.on("senate_introduced", insertBill);
-ppApi.on("senate_updated", insertBill);
-ppApi.on("senate_passed", insertBill);
-ppApi.on("senate_major", insertBill);
+ppApi.on("house_introduced", insertIncomingBill);
+ppApi.on("house_updated", insertIncomingBill);
+ppApi.on("house_passed", insertIncomingBill);
+ppApi.on("house_major", insertIncomingBill);
+ppApi.on("senate_introduced", insertIncomingBill);
+ppApi.on("senate_updated", insertIncomingBill);
+ppApi.on("senate_passed", insertIncomingBill);
+ppApi.on("senate_major", insertIncomingBill);
 
 ppApi.on("house_introduced", insertIncomingBillToProcessingTable);
 ppApi.on("house_updated", insertIncomingBillToProcessingTable);
@@ -252,28 +292,39 @@ ppApi.on("senate_updated", insertIncomingBillToProcessingTable);
 ppApi.on("senate_passed", insertIncomingBillToProcessingTable);
 ppApi.on("senate_major", insertIncomingBillToProcessingTable);
 
-ppApi.on("bill", insertWholeBill);
+ppApi.on("bill", upsertBill);
 //ppApi.on("bill", soundOff);
 ppApi.on("member", insertMember);
 ppApi.on("cosponsors", insertCosponsors);
 ppApi.on("votedigest", insertVoteDigest);
 ppApi.on("vote", insertVote);
 
-//ransackIncomingForNewBills();
-// ransackIncomingForNewMembers();
- //ransackIncomingBillsForCosponsors();
- ransackVotesDigestsForVotes();
-
 // // test calls
-// ppApi.house_introduced();
-// ppApi.house_updated();
-// ppApi.house_passed();
-// ppApi.house_major();
-// ppApi.senate_introduced();
-// ppApi.senate_updated();
-// ppApi.senate_passed();
-// ppApi.senate_major();
+ppApi.house_introduced();
+ppApi.house_updated();
+ppApi.house_passed();
+ppApi.house_major();
+ppApi.senate_introduced();
+ppApi.senate_updated();
+ppApi.senate_passed();
+ppApi.senate_major();
 
 
 // ppApi.getVotesByMonthAndYear("senate", 1, 2017);
 // ppApi.getVotesByMonthAndYear("senate", 2, 2017);
+
+ //ransackIncomingForNewBills();
+ //ransackIncomingForNewMembers();
+ //ransackIncomingBillsForCosponsors();
+//ransackVotesDigestsForVotes();
+
+/*
+		insertBillDigestMeta which is called by insertIncomingBillToProcessingTable which is triggered by all introduced updated passed and major events
+		inserts a mini-digest of the bill into the billActions collection. it makes sense to triger the afore mentioned events daily/hourly, examine the mini digest table (billActions) for
+		multiple results for the same bill, fetch the whole bill replacing what's already out there (to capture the latest activity) and then leaving 
+		only the youngest mini-digest in the processing table
+
+		I need a replace function
+		an index on the billActions table ()
+			
+*/

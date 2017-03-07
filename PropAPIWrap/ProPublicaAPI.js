@@ -176,7 +176,7 @@ me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("
 me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");};
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");};
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");};
-me.getFullBill = function(billId, session){ my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");};
+me.getFullBill = function(billId, session){ /*console.log(my.billPath(my.slug(billId), session)); my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");*/};
 
 
 me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); };

@@ -32,13 +32,29 @@ var count = 0;
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			db.dropDatabase();
 			
-			var x = yield db.collection("bills").ensureIndex({"congress": 1, "bill": 1}, {"unique": true, "dropDups": true});
-			 x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
-			 x = yield db.collection("votes").ensureIndex({ "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 }, {"unique": true, "dropDups": true});
+		var x = yield db.collection("bills").ensureIndex({"congress": 1, "bill": 1}, {"unique": true, "dropDups": true});
+		x = yield db.collection("members").ensureIndex({"member_id": 1}, {"unique": true, "dropDups": true});
+		x = yield db.collection("votes").ensureIndex({ "congress": 1, "session": 1, "chamber": 1, "roll_call": 1 }, {"unique": true, "dropDups": true});
+		x = yield db.collection("billActions").ensureIndex( {"number": 1, "sha1": 1} , {"unique": true, "dropDups": true} );
 
-			
 			db.close();
 		});
+	}
+
+	function clearIncomingBillCollections(){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			// yield db.collection(collectionNames.HOUSE_INTRODUCED).drop();
+			// yield db.collection(collectionNames.HOUSE_UPDATED).drop();
+			// yield db.collection(collectionNames.HOUSE_PASSED).drop();
+			// yield db.collection(collectionNames.HOUSE_MAJOR).drop();
+			// yield db.collection(collectionNames.SENATE_INTRODUCED).drop();
+			// yield db.collection(collectionNames.SENATE_UPDATED).drop();
+			// yield db.collection(collectionNames.SENATE_PASSED).drop();
+			// yield db.collection(collectionNames.SENATE_MAJOR).drop();
+			//yield db.collection(collectionNames.INCOMING_BILLS).drop();
+			db.close();
+		}).then(function(){},function(err){ console.log("err ... ", err); });
 	}
 
 	function scanMembersForDupes(collectionName, strategy){
@@ -115,59 +131,146 @@ var count = 0;
 //scanBillsForDupes();
 //aggregate();
 
-queryToFile("/vote.json");
+//queryToFile("/vote.json");
 
-// //compares all objects to prototype and logs when it finds a mismatch
-// co(function*(){
-// 	var db = yield MongoClient.connect(DB_Connections.ProPublica);
-// 	var col = db.collection(collectionNames.HOUSE_INTRODUCED);
-// 	var docs = yield col.find().limit(1).toArray();
-// 	var masterType = getType(docs[0]);
-// 	console.log(masterType);
+//////////clearIncomingBillCollections();
 
-// 	for(var c in collectionNames){
-// 		var current = collectionNames.HOUSE_INTRODUCED;//collectionNames[c];
-// 		console.log(current);
-// 		col = db.collection(current);
-// 		var docs = yield col.find().toArray();
-// 		for(var doc in docs){
-// 			counter++;
-// 			var currentDoc = docs[doc];
-// 			var docType = getType(currentDoc);
-// console.log(docType);			
-// 			if(!areTypesSame(docType, masterType)){
-// 				console.log("found erant type in", current);
-// 			}
-// 		}
-// 	}
-// 	db.close(); 	
-// 	console.log(counter);
-// });
+//compares all objects to prototype and logs when it finds a mismatch
 
-// var conn = MongoClient.connect(DB_Connections.ProPublica, function(err, db){
-// 	if(!err){
-// 		var masterType;
-// 		var col = db.collection(collectionNames.HOUSE_UPDATED), typea, typeb;
-// 		col.find().limit(1).toArray(function(err, docs){
-// 			masterType = getType(docs[0]);
-// 			for(var c in collectionNames){
-// 				var current = collectionNames[c];
-// 				console.log(current);
-// 				col = db.collection(current);
-// 				col.find().toArray(function(err, docs){
-// 					for(var doc in docs){
-// 						var currentDoc = docs[doc];
-// 						var docType = getType(currentDoc);
-// 						if(!areObjectsSameType(docType, masterType)){
-// 							console.log("found erant type in ",current);
-// 						}
-// 					} 
-// 				});
-// 			}
-// 		});
-// 	}
-// 	//db.close();
-// });
+	function getType(a){
+	  	/*	pass an object, returnes an array of top level properties
+	  	*/
+	  	var p=[];
+	    for(var c in a){
+	    	p.push(c);
+	    }
+	    return p;
+	}
+
+	function areTypesSame(a,b){
+		/*	pass two arrays representing top level properties of objects
+			returns boolean
+		*/  
+		if(a.length != b.length){ return false;}
+		var d=true;
+		a.sort();
+		b.sort();
+		for(var c in a){
+			if(!d){break;}
+		  d = a[c] === b[c];
+		}
+		return d;
+	}
+
+	function compareTypesInCollection(collectionName, r1, r2){
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionName);
+			var doc1 = (yield col.find().skip(r1).limit(1).toArray())[0];
+			var doc2 = (yield col.find().skip(r2).limit(1).toArray())[0];
+			db.close();
+
+			doc1type = getType(doc1);
+			doc2type = getType(doc2);
+
+			// console.log(doc1type);
+			// console.log(doc2type);
+			console.log(areTypesSame(doc1type, doc2type));
+		});
+	}
+
+	function countErantTypes(){
+		var counter = 0;
+		var erant = 0;
+		var mt;
+		co(function*(){
+			var db = yield MongoClient.connect(DB_Connections.ProPublica);
+			var col = db.collection(collectionNames.INCOMING_BILLS);
+			var docs = yield col.find().limit(1).toArray();
+			var masterType = getType(docs[0]);
+			console.log(masterType);
+			for(var c in collectionNames){
+				erant = 0; counter = 0;
+				var current = collectionNames[c];
+				col = db.collection(current);
+				mt = yield col.find().limit(1).toArray();
+				masterType = getType(mt[0]);
+				docs = yield col.find().toArray();
+				for(var doc in docs){
+					counter++;
+					var currentDoc = docs[doc];
+					var docType = getType(currentDoc);
+		//console.log(docType);			
+					if(!areTypesSame(docType, masterType)){
+						//console.log("found erant type in", current);
+						erant++;
+					}
+				}
+				console.log(current,erant,counter);
+			}
+			db.close(); 	
+		});		
+	}
+
+function findAllTypes(){
+	co( function*(){
+		var db = yield MongoClient.connect(DB_Connections.ProPublica),
+		col, 
+		docs
+		;
+		
+		for(var c in collectionNames){
+			console.log(collectionNames[c])
+			col = db.collection(collectionNames[c]);
+			docs = yield col.find().toArray();
+			for(var d in docs){
+				yield registerType(collectionNames[c], getType(docs[d]));
+			}
+		}
+		db.close();		
+
+	});
+}	
+
+
+
+function registerType(collectionName, type){
+	return co(function*(){
+		var known = false,
+		knownTypes;
+
+		var db = yield MongoClient.connect(DB_Connections.ProPublica);
+		var col = db.collection("types");
+		var collectionDocument = (yield col.find({"collectionName": collectionName}).toArray())[0];
+		if(collectionDocument){
+			console.log("collection document found!!!:", collectionName);
+			knownTypes = collectionDocument.types;
+			for(var t in knownTypes){
+				var current = knownTypes[t];
+				if(areTypesSame(type,current)){
+					known = true;
+				}
+			}
+		}
+		else {
+			console.log("no collection document found:", collectionName);
+		}
+		if(!known){
+			if(!collectionDocument){ collectionDocument = { "collectionName": collectionName, "types":[ ] }; };
+			collectionDocument.types[collectionDocument.types.length] = type;
+			yield col.save(collectionDocument);
+		}
+		db.close();
+	});
+}
+
+//countErantTypes()
+
+//compareTypesInCollection(collectionNames.VOTES, 0, 2);
+
+findAllTypes();
+
+
 // var printType = true;
 // var conn = MongoClient.connect(DB_Connections.ProPublica);
 // conn.then(function(db){

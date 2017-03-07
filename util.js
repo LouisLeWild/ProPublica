@@ -36,6 +36,16 @@ var me = {
 	  	}
 	},
 
+	batchThenEachGenerator: function*(collection, batchsize){
+		var f = collection.slice(0,batchsize);
+		var s = collection.slice(batchsize);
+
+		yield f;
+		for(var a in s){
+			yield([s[a]]);
+		}
+	},
+
 	iterator: function*(generator, processor){
 		var n;
 		while(!(n = generator.next()).done){
@@ -43,21 +53,29 @@ var me = {
 		}
 	},
 
-	promiseArrayProcessor: function(promiser){
+	promiseArrayProcessor: function(promiser, isAll){
 		return function(myArray){
 			var p = [],
 				i;
 			for(i in myArray){
 				p.push(promiser(myArray[i]));
 			}
-			return Promise.all(p);
+			if(isAll) return Promise.all(p);
+			return Promise.race(p);
 		};
+	},
+
+	promiseArrayProcessorAll: function(promiser){
+		return me.promiseArrayProcessor(promiser, true);
+	},
+
+	promiseArrayProcessorRace: function(promiser){
+		return me.promiseArrayProcessor(promiser, false);
 	},
 
 	triggerIterator: function(iterator, doThen){
 
 		function next(){
-			console.log('called next() ... yep sure did!');
 			var n;
 			if( (n = (iterator.next())).done ) return;
 			n.value.then( function(val){ doThen(val); next();});
