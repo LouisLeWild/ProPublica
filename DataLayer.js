@@ -144,7 +144,7 @@ var MongoClient = require("mongodb").MongoClient,
 	}
 
 	function ransackIncomingForNewBills(){
-		co(function*(){
+		return co(function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
 			var docs = yield col.find().toArray();
@@ -177,7 +177,7 @@ var MongoClient = require("mongodb").MongoClient,
 	}
 
 	function ransackIncomingForNewMembers(){
-		co(function*(){
+		return co(function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
 			var docs = yield col.find().toArray();
@@ -192,7 +192,7 @@ var MongoClient = require("mongodb").MongoClient,
 	}
 
 	function ransackIncomingBillsForCosponsors(){
-		co(function*(){
+		return co(function*(){
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var col = db.collection(ProPublica_Collections.INCOMING_BILLS);
 			var docs = yield col.find().toArray();
@@ -228,7 +228,7 @@ var MongoClient = require("mongodb").MongoClient,
 	}
 
 	function ransackVotesDigestsForVotes(){
-		co(function*(){
+		return co(function*(){
 			var uris = [];
 			var db = yield MongoClient.connect(DB_Connections.ProPublica);
 			var digests = db.collection(ProPublica_Collections.VOTE_DIGESTS);
@@ -300,14 +300,14 @@ ppApi.on("votedigest", insertVoteDigest);
 ppApi.on("vote", insertVote);
 
 // // test calls
-ppApi.house_introduced();
-ppApi.house_updated();
-ppApi.house_passed();
-ppApi.house_major();
-ppApi.senate_introduced();
-ppApi.senate_updated();
-ppApi.senate_passed();
-ppApi.senate_major();
+// ppApi.house_introduced();
+// ppApi.house_updated();
+// ppApi.house_passed();
+// ppApi.house_major();
+// ppApi.senate_introduced();
+// ppApi.senate_updated();
+// ppApi.senate_passed();
+// ppApi.senate_major();
 
 
 // ppApi.getVotesByMonthAndYear("senate", 1, 2017);
@@ -316,7 +316,7 @@ ppApi.senate_major();
  //ransackIncomingForNewBills();
  //ransackIncomingForNewMembers();
  //ransackIncomingBillsForCosponsors();
-//ransackVotesDigestsForVotes();
+ransackVotesDigestsForVotes();
 
 /*
 		insertBillDigestMeta which is called by insertIncomingBillToProcessingTable which is triggered by all introduced updated passed and major events

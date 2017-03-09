@@ -90,6 +90,45 @@ var my = {
 
 	uriPath: function(uri){
 		return "/" + uri.split("/").slice(3).join("/");
+	},
+
+	getPropublicaDataFactory: function(internalEvent, externalEvent){
+		return function(path){
+			return new Promise(function(resolve, reject){
+				var internalEvent = "newfullvote";
+				var externalEvent = "vote";
+				console.log("patharooni:", path);
+				if(path.indexOf("http") === 0){ path = my.uriPath(path);}
+				reqConfig = {
+					"hostname": "api.propublica.org", 
+					"path": path,
+					"method": "GET",
+					"headers": { "X-API-Key" : apikey }
+				};
+
+				var req = https.request(reqConfig, function(res){
+					console.log("request rec\'d response", res.statusCode, res.statusMessage, externalEvent);
+					if(res.statusCode != 200){
+						my.emitter.emit("responsenotok", {"timestamp": new Date().toString(), "responseStatus": res.statusCode, "responseMessage": res.statusMessage, "functionName": "getPropublicaData", "argsSent": { "path": path, "internalEvent": internalEvent, "externalEvent": externalEvent}} );
+						reject(0);
+					}
+
+				var respData = "";
+				
+				res.on("data", (d) => {
+					var buf = Buffer.from(d);
+					respData += buf.toString("utf8");			
+				  });
+
+				res.on("end", () => {
+					var responseObject = JSON.parse(respData);
+					my.emitter.emit(internalEvent, responseObject, externalEvent);
+					resolve(1);
+					});
+				});
+				req.end();
+			});
+		}
 	}
 };
 
@@ -176,7 +215,7 @@ me.senate_updated = function(session){ my.getPropublicaData(my.recentBillsPath("
 me.senate_passed = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "passed", session),"newactivity","senate_passed");};
 me.senate_major = function(session){ my.getPropublicaData(my.recentBillsPath("senate", "major", session),"newactivity","senate_major");};
 me.getMember = function(memberId){ my.getPropublicaData(my.memberPath(memberId), "newmember", "member");};
-me.getFullBill = function(billId, session){ /*console.log(my.billPath(my.slug(billId), session)); my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");*/};
+me.getFullBill = function(billId, session){ console.log(my.billPath(my.slug(billId), session)); my.getPropublicaData(my.billPath(my.slug(billId), session), "newfullbill", "bill");};
 
 
 me.getBillCosponsors = function(billId, session){ my.getPropublicaData(my.cosponsorsPath(my.slug(billId), session), "newcosponsors", "cosponsors"); };
@@ -187,41 +226,6 @@ me.getVotesByMonthAndYear = function(chamber, month, year){ console.log(my.votes
 
 me.getFullVote = function(path){ my.getPropublicaData(path, "newfullvote", "vote");};
 
-me.getFullVotePromise = function(path){ return new Promise(function(resolve, reject){
-
-		var internalEvent = "newfullvote";
-		var externalEvent = "vote";
-		console.log("path:", path);
-		if(path.indexOf("http") === 0){ path = my.uriPath(path);}
-		reqConfig = {
-			"hostname": "api.propublica.org", 
-			"path": path,
-			"method": "GET",
-			"headers": { "X-API-Key" : apikey }
-		};
-
-		var req = https.request(reqConfig, function(res){
-			console.log("request rec\'d response", res.statusCode, res.statusMessage, externalEvent);
-			if(res.statusCode != 200){
-				my.emitter.emit("responsenotok", {"timestamp": new Date().toString(), "responseStatus": res.statusCode, "responseMessage": res.statusMessage, "functionName": "getPropublicaData", "argsSent": { "path": path, "internalEvent": internalEvent, "externalEvent": externalEvent}} );
-				reject(0);
-			}
-
-		var respData = "";
-		
-		res.on("data", (d) => {
-			var buf = Buffer.from(d);
-			respData += buf.toString("utf8");			
-		  });
-
-		res.on("end", () => {
-			var responseObject = JSON.parse(respData);
-			my.emitter.emit(internalEvent, responseObject, externalEvent);
-			resolve(1);
-			});
-		});
-		req.end();
-		});
-	};
+me.getFullVotePromise = my.getPropublicaDataFactory("newfullvote", "vote");
 
 module.exports = me;

@@ -232,8 +232,6 @@ function findAllTypes(){
 	});
 }	
 
-
-
 function registerType(collectionName, type){
 	return co(function*(){
 		var known = false,
